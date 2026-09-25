@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Code2, PlusCircle, Search, Menu, X, Shield } from "lucide-react";
+import { Code2, PlusCircle, Search, Menu, X, Shield, Star, Github } from "lucide-react";
 
 export default function Navbar() {
   const [jumpSlug, setJumpSlug] = useState("");
@@ -69,7 +69,7 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop Navigation & Quick Jump */}
-        <div className="hidden items-center gap-4 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
           <form onSubmit={handleJump} className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
@@ -77,16 +77,27 @@ export default function Navbar() {
               placeholder="Enter group code/slug..."
               value={jumpSlug}
               onChange={(e) => setJumpSlug(e.target.value)}
-              className="w-56 rounded-lg border border-slate-700 bg-slate-900/90 py-1.5 pl-9 pr-3 text-xs text-slate-200 placeholder-slate-500 transition focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-52 rounded-lg border border-slate-700 bg-slate-900/90 py-1.5 pl-9 pr-3 text-xs text-slate-200 placeholder-slate-500 transition focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </form>
 
           <Link
             href="/"
-            className="text-sm font-medium text-slate-300 transition hover:text-white"
+            className="text-xs font-medium text-slate-300 transition hover:text-white"
           >
             Explore
           </Link>
+
+          <a
+            href="https://github.com/Legend-1s-here/KageNova"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-amber-300 transition hover:border-amber-500/50 hover:bg-slate-800"
+            title="Star KAGENOVA on GitHub"
+          >
+            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            <span>Star on GitHub</span>
+          </a>
 
           {isMod && (
             <Link
@@ -140,6 +151,15 @@ export default function Navbar() {
             >
               Explore Public Groups
             </Link>
+            <a
+              href="https://github.com/Legend-1s-here/KageNova"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-300"
+            >
+              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+              <span>⭐ Star on GitHub</span>
+            </a>
             {isMod && (
               <Link
                 href="/mod"
