@@ -1,135 +1,284 @@
-# KAGENOVA — Group-based Lab Code Sharing Platform
+<div align="center"> <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663886659791/XlGGebIXwOdZbODH.png" alt="KAGENOVA — group-based lab code sharing platform" width="100%" /> <h1>⌘ KAGENOVA ⌘</h1> <h3><em>Share lab code solutions in seconds. Zero accounts. Just a group key.</em></h3> <p><strong>A focused code-sharing platform for students, teaching assistants, and instructors.</strong></p>
 
-> **Share lab code solutions in seconds. Zero accounts. Just a group key.**
+[![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/atlas)
+[![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com/)
+[![License](https://img.shields.io/badge/License-MIT-7C3AED?style=for-the-badge)](./LICENSE)
 
-KAGENOVA is a modern, full-stack web application designed for students, teaching assistants, and instructors to organize, share, view, and download programming lab codes organized by groups (class sections, lab batches).
 
----
-
-## ✨ Features
-
-- 🚀 **Zero-Login Collaboration:** No student accounts or signups required. Enter a group access key to unlock uploading and editing.
-- 🌐 **Two Visibility Tiers:**
-  - **Public Groups:** Listed in the homepage directory, freely browseable by anyone.
-  - **Private / Unlisted Groups:** Accessible only via direct URL (`/g/[slug]`).
-- 🔐 **Key-Scoped Editing:** Group admin key is bcrypt-hashed in the database. Successful verification issues an HTTP-only, secure, scoped JWT session cookie (`12-hour expiry`).
-- 🛡️ **Brute-Force Rate Limiting:** Built-in sliding-window rate limiter (5 failed attempts per 10 minutes per IP/slug).
-- 💻 **Syntax Highlighting & Code Tools:** Full syntax highlighting for 15+ languages (C, C++, Python, Java, JavaScript, TypeScript, SQL, Go, Rust, etc.) with one-click copy and file download.
-- 📁 **File Drag & Drop:** Upload code directly by pasting or uploading source code files (`.py`, `.cpp`, `.java`, etc.).
-- 📦 **200KB Payload Cap:** Strict server-side validation preventing oversized code payloads and XSS vulnerabilities.
+<blockquote><strong>One group key. One shared lab. Less time hunting through chat history.</strong></blockquote> </div>
 
 ---
 
-## 🛠️ Tech Stack
+<div align="center">
 
-- **Framework:** Next.js 14 (App Router) + TypeScript
-- **Styling:** Tailwind CSS + Lucide Icons
-- **Database:** MongoDB Atlas via Mongoose
-- **Authentication:** bcryptjs (password hashing) + jsonwebtoken (scoped session cookies)
-- **Syntax Highlighting:** react-syntax-highlighter (Atom One Dark theme)
-- **Deployment:** Vercel (Web App) + MongoDB Atlas (Database)
+![01 The Idea](https://img.shields.io/badge/01-THE_IDEA-38BDF8?style=for-the-badge&labelColor=07111F)
 
----
+<h2>Code sharing without the ceremony.</h2> </div>
 
-## 🚀 Getting Started
+**KAGENOVA** gives every lab group a small, focused workspace for source code. Create a group, share its key, and let classmates browse, upload, copy, download, or update the solutions they need — without forcing every contributor through another account system.
 
-### Prerequisites
+The platform is designed for class sections, lab batches, teaching assistants, and instructors who want a practical shared archive instead of scattered files and disappearing messages.
 
-- [Node.js](https://nodejs.org/) v18+ (tested on v20 and v24)
-- [npm](https://www.npmjs.com/) (or `npm.cmd` on Windows)
-- A MongoDB connection string (local instance or free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster)
+<table>
+<tr>
+<td width="25%" align="center"><strong>CREATE</strong>  
+<sub>Start a group in seconds</sub></td>
+<td width="25%" align="center"><strong>UNLOCK</strong>  
+<sub>Enter a group key</sub></td>
+<td width="25%" align="center"><strong>SHARE</strong>  
+<sub>Browse lab snippets</sub></td>
+<td width="25%" align="center"><strong>SHIP</strong>  
+<sub>Copy or download code</sub></td>
+</tr>
+</table>
 
-### 1. Clone & Install Dependencies
+## 
+
+<div align="center">
+
+![02 Product Preview](https://img.shields.io/badge/02-PRODUCT_PREVIEW-6366F1?style=for-the-badge&labelColor=07111F)
+
+<h2>The workspace, at a glance.</h2> <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663886659791/JDbVcyMBslSySuLr.png" alt="KAGENOVA homepage showing group creation, public group exploration, and the three-step workflow" width="100%" />
+
+<sub><strong>Create a group → unlock with a key → share lab codes.</strong></sub>
+
+</div>
+
+## 
+
+<div align="center">
+
+![03 Group Spaces](https://img.shields.io/badge/03-GROUP_SPACES-22C55E?style=for-the-badge&labelColor=07111F)
+
+<h2>Public when useful. Private when necessary.</h2> </div>
+
+KAGENOVA organizes code around **groups** rather than individual profiles. A group can represent a class section, a lab batch, a semester, a study circle, or any other shared coding space.
+
+### Two visibility tiers
+
+- **Public groups** appear in the homepage directory and can be browsed by anyone.
+
+- **Private / unlisted groups** stay out of the directory and are reachable through a direct URL such as `/g/[slug]`.
+
+This gives instructors and student groups a simple choice: make a repository discoverable, or share the route only with the people who need it.
+
+## 
+
+<div align="center">
+
+![04 Secure Access](https://img.shields.io/badge/04-SECURE_ACCESS-8B5CF6?style=for-the-badge&labelColor=07111F)
+
+<h2>A key, not an account maze.</h2> </div>
+
+The zero-login experience is intentionally lightweight, but group editing is still scoped and protected.
+
+<table>
+<tr>
+<td width="50%" valign="top"> <h3>◈ KEY-SCOPED EDITING</h3>
+
+The group admin key is stored as a bcrypt hash. A successful verification creates a secure, HTTP-only scoped JWT session cookie with a 12-hour expiry.
+
+</td>
+<td width="50%" valign="top"> <h3>◈ BRUTE-FORCE RESISTANCE</h3>
+
+Failed group-key verification is protected by a sliding-window limiter: five failed attempts per ten minutes per IP address and group slug.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top"> <h3>◈ ISOLATED SESSIONS</h3>
+
+Unlocking one group does not expose editing access to every other group. Each session remains scoped to the group that was verified.
+
+</td>
+<td width="50%" valign="top"> <h3>◈ CONTROLLED PAYLOADS</h3>
+
+The server enforces a 200KB code-payload cap and validates submissions before they reach the database or renderer.
+
+</td>
+</tr>
+</table>
+
+## 
+
+<div align="center">
+
+![05 Code Tools](https://img.shields.io/badge/05-CODE_TOOLS-F59E0B?style=for-the-badge&labelColor=07111F)
+
+<h2>From paste to readable snippet.</h2> </div>
+
+KAGENOVA keeps the code itself at the center of the experience. Upload a source file or paste code directly, identify the language, then let the platform make it easy to inspect and reuse.
+
+- Syntax highlighting for **15+ languages**.
+
+- Support for C, C++, Python, Java, JavaScript, TypeScript, SQL, Go, Rust, and more.
+
+- One-click **copy** for quick reuse in a local editor.
+
+- Direct **file download** for saving a snippet as a source file.
+
+- Search by query with `?q=`.
+
+- Filter by language with `?lang=`.
+
+- Drag-and-drop source uploads for `.py`, `.cpp`, `.java`, and other code files.
+
+- Clear group-level snippet organization instead of one endless feed.
+
+## 
+
+<div align="center">
+
+![06 API Surface](https://img.shields.io/badge/06-API_SURFACE-06B6D4?style=for-the-badge&labelColor=07111F)
+
+</div>
+
+| Method | Endpoint | Purpose | Auth |
+| --- | --- | --- | --- |
+| `GET` | `/api/groups` | List public groups with snippet counts | No |
+| `POST` | `/api/groups` | Create a group with name, key, and visibility | No |
+| `POST` | `/api/groups/[slug]/verify` | Verify group key and set scoped session cookie | No, rate limited |
+| `GET` | `/api/groups/[slug]/session` | Check the current unlocked session | No |
+| `DELETE` | `/api/groups/[slug]/session` | Lock the group and clear its cookie | No |
+| `GET` | `/api/groups/[slug]/codes?q=&lang=` | Search and filter group snippets | No |
+| `POST` | `/api/groups/[slug]/codes` | Upload a new snippet | Group key / cookie |
+| `PUT` | `/api/groups/[slug]/codes/[id]` | Update an existing snippet | Group key / cookie |
+| `DELETE` | `/api/groups/[slug]/codes/[id]` | Delete a snippet | Group key / cookie |
+
+## 
+
+<div align="center">
+
+![07 Stack](https://img.shields.io/badge/07-STACK-EC4899?style=for-the-badge&labelColor=07111F)
+
+</div> <table>
+<tr>
+<td width="50%" valign="top"> <h3>FRONTEND</h3>
+
+[Next.js 14](https://nextjs.org/) App Router · TypeScript · Tailwind CSS · Lucide Icons · `react-syntax-highlighter`
+
+</td>
+<td width="50%" valign="top"> <h3>DATA</h3>
+
+[MongoDB Atlas](https://www.mongodb.com/atlas) via Mongoose, with group and code-snippet persistence.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top"> <h3>SECURITY</h3>
+
+`bcryptjs` password hashing · `jsonwebtoken` scoped session cookies · rate limiting · payload validation
+
+</td>
+<td width="50%" valign="top"> <h3>DEPLOYMENT</h3>
+
+[Vercel](https://vercel.com/) web application and serverless API route handlers with MongoDB Atlas as the database layer.
+
+</td>
+</tr>
+</table>
+
+## 
+
+<div align="center">
+
+![08 Start Locally](https://img.shields.io/badge/08-START_LOCALLY-6366F1?style=for-the-badge&labelColor=07111F)
+
+</div>
+
+### Requirements
+
+`Node.js 18+` · `npm` · a MongoDB connection string · a random JWT secret
+
+### Install
 
 ```bash
-cd CodeAdda
+git clone https://github.com/Legend-1s-here/kage_nova.git
+cd kage_nova
 npm install
 ```
 
-### 2. Configure Environment Variables
+### Configure environment
 
-Copy `.env.example` to `.env.local`:
+Copy the example file:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Edit `.env.local` with your MongoDB URI and a random secret key:
+Then set the database URI and a strong secret:
 
-```env
+```
 MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/kagenova?retryWrites=true&w=majority
 JWT_SECRET=your_super_secret_jwt_key_at_least_32_characters_long
 ```
 
-### 3. Run Development Server
+### Run the development server
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000).
 
----
+## 
 
-## 🧪 Testing & Verification
+<div align="center">
 
-Run the automated test suite (verifies bcrypt hashing, JWT cookie scope, sliding-window rate limiter, and server-side validation):
+![09 Verify](https://img.shields.io/badge/09-VERIFY-14B8A6?style=for-the-badge&labelColor=07111F)
+
+</div>
+
+Run the automated checks:
 
 ```bash
 npm test
-```
-
-Run TypeScript type check:
-
-```bash
 npm run test:types
-```
-
-Run production build:
-
-```bash
 npm run build
 ```
 
----
+The test suite covers the security-sensitive paths: bcrypt hashing, JWT cookie scope, sliding-window rate limiting, and server-side payload validation.
 
-## 📡 API Endpoints
+## 
 
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `GET` | `/api/groups` | List all public groups with snippet counts | No |
-| `POST` | `/api/groups` | Create a new group (name, key, isPublic) | No |
-| `POST` | `/api/groups/[slug]/verify` | Verify group key & set scoped session cookie | No (rate limited) |
-| `GET` | `/api/groups/[slug]/session` | Check if current browser session is unlocked | No |
-| `DELETE` | `/api/groups/[slug]/session` | Lock session / clear group cookie | No |
-| `GET` | `/api/groups/[slug]/codes` | List snippets for a group (`?q=` search, `?lang=`) | No |
-| `POST` | `/api/groups/[slug]/codes` | Upload new code snippet (max 200KB) | Yes (Group Key / Cookie) |
-| `PUT` | `/api/groups/[slug]/codes/[id]` | Update an existing code snippet | Yes (Group Key / Cookie) |
-| `DELETE` | `/api/groups/[slug]/codes/[id]` | Delete a code snippet | Yes (Group Key / Cookie) |
+<div align="center">
 
----
+![10 Deploy](https://img.shields.io/badge/10-DEPLOY-22C55E?style=for-the-badge&labelColor=07111F)
 
-## ☁️ Deployment Guide
+</div>
 
-### Deploying to Vercel
+### Vercel
 
-1. Push your repository to GitHub or GitLab.
-2. Go to [Vercel](https://vercel.com) and import the repository.
-3. In the **Environment Variables** section of the Vercel project settings, add:
-   - `MONGODB_URI`: Your MongoDB Atlas connection string.
-   - `JWT_SECRET`: A secure random string.
-4. Click **Deploy**. Next.js will automatically build and deploy the app and serverless API route handlers.
+1. Push the repository to GitHub or GitLab.
 
-### MongoDB Atlas Setup
+1. Import it into [Vercel](https://vercel.com/).
 
-1. Create a free cluster on [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register).
-2. Under **Database Access**, create a database user with read/write privileges.
-3. Under **Network Access**, add IP address `0.0.0.0/0` (allow access from anywhere) to allow Vercel serverless functions to connect.
-4. Click **Connect** → **Drivers** (Node.js) and copy the connection string into your `.env.local` or Vercel environment variables.
+1. Add `MONGODB_URI` and `JWT_SECRET` in the project environment variables.
 
----
+1. Deploy. Next.js will build the web app and serverless API route handlers.
 
-## 📄 License
+### MongoDB Atlas
 
-MIT License — Built for students and educators.
->>>>>>> d9d6e5e (feat: initial release of Kagenova)
+1. Create a free cluster.
+
+1. Create a database user with read/write privileges.
+
+1. Configure network access for your deployment environment.
+
+1. Copy the driver connection string into `.env.local` or Vercel’s environment variables.
+
+## 
+
+<div align="center">
+
+![11 Design Language](https://img.shields.io/badge/11-DESIGN_LANGUAGE-38BDF8?style=for-the-badge&labelColor=07111F)
+
+<h2>Less noise. More shared momentum.</h2> <p>KAGENOVA treats code sharing as a focused group ritual: a small key opens a practical workspace, readable snippets replace buried attachments, and the interface stays out of the way of the lab.</p>
+<blockquote><strong>Open the group. Find the code. Keep moving.</strong>  
+<sub>zero accounts · scoped access · built for labs</sub></blockquote> </div>
+
+## License
+
+KAGENOVA is released under the [MIT License](./LICENSE).
