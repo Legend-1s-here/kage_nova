@@ -1,11 +1,13 @@
 import mongoose from "mongoose";
 import dns from "dns";
 
-// Ensure reliable DNS resolution for mongodb+srv on Windows/local environments
-try {
-  dns.setServers(["8.8.8.8", "1.1.1.1"]);
-} catch {
-  // Ignore in environments where setting DNS servers is restricted
+// Ensure reliable DNS resolution for mongodb+srv on Windows local development only
+if (process.env.NODE_ENV !== "production" && process.platform === "win32") {
+  try {
+    dns.setServers(["8.8.8.8", "1.1.1.1"]);
+  } catch {
+    // Ignore in environments where setting DNS servers is restricted
+  }
 }
 
 const MONGODB_URI = process.env.MONGODB_URI;

@@ -111,10 +111,12 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error creating group:", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to create group";
     return NextResponse.json(
-      { success: false, error: "Failed to create group" },
+      { success: false, error: message },
       { status: 500 }
     );
   }
