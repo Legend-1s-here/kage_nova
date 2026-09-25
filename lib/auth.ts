@@ -4,10 +4,18 @@ import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
 const JWT_SECRET = process.env.JWT_SECRET || "kagenova-default-dev-secret-change-in-production";
+export const MOD_KEY = process.env.MOD_KEY || "Priyansh63";
+export const MOD_COOKIE_NAME = "kg_mod_sess";
 
 export interface GroupTokenPayload {
   slug: string;
-  role: "editor";
+  role: "editor" | "moderator";
+  iat?: number;
+  exp?: number;
+}
+
+export interface ModTokenPayload {
+  role: "moderator";
   iat?: number;
   exp?: number;
 }
@@ -55,19 +63,66 @@ export function createGroupToken(slug: string): string {
 export function verifyGroupToken(token: string, slug: string): boolean {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as GroupTokenPayload;
-    return decoded && decoded.slug === slug.toLowerCase() && decoded.role === "editor";
+    if (!decoded) return false;
+    if (decoded.role === "moderator") return true;
+    return decoded.slug === slug.toLowerCase() && decoded.role === "editor";
   } catch {
     return false;
   }
 }
 
 /**
- * Checks if the incoming request has a valid session cookie for the given group.
+ * Issue a signed master moderator JWT token.
+ * Expires in 24 hours.
+ */
+export function createModToken(): string {
+  const payload: ModTokenPayload = {
+    role: "moderator",
+  };
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "24h" });
+}
+
+/**
+ * Verify a moderator JWT token.
+ */
+export function verifyModToken(token: string): boolean {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as ModTokenPayload;
+    return decoded && decoded.role === "moderator";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Checks if the request is from an authenticated Master Moderator.
+ */
+export function isModerator(req: NextRequest): boolean {
+  // 1. Check x-mod-key header
+  const headerKey = req.headers.get("x-mod-key");
+  if (headerKey && headerKey === MOD_KEY) {
+    return true;
+  }
+
+  // 2. Check mod cookie
+  const modCookie = req.cookies.get(MOD_COOKIE_NAME)?.value;
+  if (modCookie && verifyModToken(modCookie)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Checks if the incoming request has a valid session cookie for the given group OR is a Moderator.
  */
 export function hasValidGroupSession(
   req: NextRequest,
   slug: string
 ): boolean {
+  // Master Moderator bypass
+  if (isModerator(req)) return true;
+
   const cookieName = getGroupCookieName(slug);
   const token = req.cookies.get(cookieName)?.value;
   if (!token) return false;
@@ -80,6 +135,13 @@ export function hasValidGroupSession(
 export async function checkServerGroupSession(slug: string): Promise<boolean> {
   try {
     const cookieStore = cookies();
+
+    // Check Moderator cookie
+    const modToken = cookieStore.get(MOD_COOKIE_NAME)?.value;
+    if (modToken && verifyModToken(modToken)) {
+      return true;
+    }
+
     const cookieName = getGroupCookieName(slug);
     const token = cookieStore.get(cookieName)?.value;
     if (!token) return false;

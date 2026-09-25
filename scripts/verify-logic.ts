@@ -34,7 +34,7 @@ async function runTests() {
   assert(await verifyKey(testPassword, hash) === true, "Valid password matches hash");
   assert(await verifyKey("wrongPassword", hash) === false, "Invalid password fails match");
 
-  // 3. Auth: Scoped JWT tokens
+  // 3. Auth: Scoped JWT tokens & Moderator Tokens
   console.log("\n--- Test Group: Scoped JWT Session Tokens ---");
   const token = createGroupToken("cs301-batch-a");
   assert(typeof token === "string" && token.length > 20, "Generates valid JWT string");
@@ -42,6 +42,15 @@ async function runTests() {
   assert(verifyGroupToken(token, "CS301-BATCH-A") === true, "Token verification is case-insensitive");
   assert(verifyGroupToken(token, "other-group-slug") === false, "Token rejected for different group slug");
   assert(verifyGroupToken("invalid.token.string", "cs301-batch-a") === false, "Corrupted token rejected");
+
+  // 3b. Moderator Tokens
+  console.log("\n--- Test Group: Master Moderator Tokens ---");
+  const { createModToken, verifyModToken } = await import("../lib/auth");
+  const modToken = createModToken();
+  assert(typeof modToken === "string" && modToken.length > 20, "Generates valid Mod token");
+  assert(verifyModToken(modToken) === true, "Mod token verifies successfully");
+  assert(verifyModToken("invalid.mod.token") === false, "Invalid Mod token rejected");
+  assert(verifyGroupToken(modToken, "any-random-group-slug") === true, "Mod token bypasses individual group slug check");
 
   // 4. Rate Limiter: Sliding Window
   console.log("\n--- Test Group: Rate Limiting ---");

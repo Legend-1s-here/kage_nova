@@ -1,14 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Code2, PlusCircle, Search, Menu, X } from "lucide-react";
+import { Code2, PlusCircle, Search, Menu, X, Shield } from "lucide-react";
 
 export default function Navbar() {
   const [jumpSlug, setJumpSlug] = useState("");
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isMod, setIsMod] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    fetch("/api/mod/session")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.isModerator) {
+          setIsMod(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleJump = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +88,16 @@ export default function Navbar() {
             Explore
           </Link>
 
+          {isMod && (
+            <Link
+              href="/mod"
+              className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-400 transition hover:bg-amber-500/20"
+            >
+              <Shield className="h-3.5 w-3.5" />
+              <span>Mod Panel</span>
+            </Link>
+          )}
+
           <Link
             href="/create-group"
             className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-brand-600/30 transition hover:bg-brand-500 active:scale-[0.98]"
@@ -118,6 +140,16 @@ export default function Navbar() {
             >
               Explore Public Groups
             </Link>
+            {isMod && (
+              <Link
+                href="/mod"
+                onClick={() => setIsMobileOpen(false)}
+                className="flex items-center gap-1.5 rounded-md bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-400 hover:bg-amber-500/20"
+              >
+                <Shield className="h-4 w-4" />
+                <span>Mod Portal</span>
+              </Link>
+            )}
             <Link
               href="/create-group"
               onClick={() => setIsMobileOpen(false)}

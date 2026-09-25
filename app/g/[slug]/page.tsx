@@ -12,6 +12,9 @@ import {
   Search,
   Unlock,
   RefreshCw,
+  Trash2,
+  AlertTriangle,
+  Shield,
 } from "lucide-react";
 import LabCodeCard from "@/components/LabCodeCard";
 import UnlockModal from "@/components/UnlockModal";
@@ -49,9 +52,13 @@ export default function GroupDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isMod, setIsMod] = useState(false);
   const [showUnlock, setShowUnlock] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLang, setSelectedLang] = useState("All");
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch group info + codes + session state
   const fetchData = useCallback(async () => {
@@ -59,7 +66,18 @@ export default function GroupDashboard() {
     setLoading(true);
     setError("");
     try {
-      // Check session status
+      // Check mod status
+      fetch("/api/mod/session")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.isModerator) {
+            setIsMod(true);
+            setIsUnlocked(true);
+          }
+        })
+        .catch(() => {});
+
+      // Check group session status
       const sessionRes = await fetch(`/api/groups/${slug}/session`);
       const sessionData = await sessionRes.json();
 
@@ -69,7 +87,9 @@ export default function GroupDashboard() {
         return;
       }
 
-      setIsUnlocked(sessionData.unlocked || false);
+      if (sessionData.unlocked) {
+        setIsUnlocked(true);
+      }
 
       // Fetch codes
       const params = new URLSearchParams();
@@ -107,6 +127,27 @@ export default function GroupDashboard() {
 
   const handleCodeDeleted = (id: string) => {
     setCodes((prev) => prev.filter((c) => c._id !== id));
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!slug) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${slug}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.error || "Failed to delete group");
+        return;
+      }
+      // Redirect home on success
+      router.push("/");
+    } catch {
+      alert("Network error while deleting group");
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   // Loading state
@@ -163,13 +204,20 @@ export default function GroupDashboard() {
                   <Lock className="h-3 w-3" /> Private
                 </span>
               )}
-              {isUnlocked && (
+
+              {isMod && (
+                <span className="flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-400">
+                  <Shield className="h-3 w-3" /> Moderator Mode
+                </span>
+              )}
+
+              {isUnlocked && !isMod && (
                 <span className="flex items-center gap-1 rounded-full bg-brand-500/10 px-2 py-0.5 text-xs font-medium text-brand-400">
                   <Unlock className="h-3 w-3" /> Editing Unlocked
                 </span>
               )}
             </div>
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-2xl font-bold text-white sm:text-3xl">
               {group?.name || "Group"}
             </h1>
             <p className="mt-1 text-xs text-slate-500 font-mono">
@@ -177,7 +225,7 @@ export default function GroupDashboard() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {!isUnlocked && (
               <button
                 onClick={() => setShowUnlock((s) => !s)}
@@ -187,14 +235,25 @@ export default function GroupDashboard() {
                 Unlock Editing
               </button>
             )}
+
             {isUnlocked && (
-              <Link
-                href={`/g/${slug}/upload`}
-                className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-500"
-              >
-                <PlusCircle className="h-3.5 w-3.5" />
-                Upload Code
-              </Link>
+              <>
+                <Link
+                  href={`/g/${slug}/upload`}
+                  className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-500"
+                >
+                  <PlusCircle className="h-3.5 w-3.5" />
+                  Upload Code
+                </Link>
+
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete Group
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -285,6 +344,48 @@ export default function GroupDashboard() {
           </>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && group && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-slate-900 p-6 shadow-2xl">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 text-red-400">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Delete Group</h3>
+                <p className="text-xs text-slate-400">Permanent action</p>
+              </div>
+            </div>
+
+            <p className="mb-5 text-sm text-slate-300">
+              Are you sure you want to permanently delete{" "}
+              <strong className="text-white">"{group.name}"</strong>? This will delete the
+              group and all its {codes.length} uploaded code snippet(s). This cannot be undone.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleteLoading}
+                className="flex-1 rounded-lg border border-slate-700 py-2.5 text-xs font-medium text-slate-300 hover:border-slate-500"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteGroup}
+                disabled={deleteLoading}
+                className="flex-1 rounded-lg bg-red-600 py-2.5 text-xs font-semibold text-white shadow hover:bg-red-500 disabled:opacity-50"
+              >
+                {deleteLoading ? "Deleting…" : "Yes, Delete Group"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
