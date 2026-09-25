@@ -89,7 +89,7 @@ export default function Navbar() {
           </Link>
 
           <a
-            href="https://github.com/Legend-1s-here/KageNova"
+            href="https://github.com/Legend-1s-here/kage_nova"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-amber-300 transition hover:border-amber-500/50 hover:bg-slate-800"
@@ -152,7 +152,7 @@ export default function Navbar() {
               Explore Public Groups
             </Link>
             <a
-              href="https://github.com/Legend-1s-here/KageNova"
+              href="https://github.com/Legend-1s-here/kage_nova"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-300"

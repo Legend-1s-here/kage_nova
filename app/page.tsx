@@ -98,7 +98,7 @@ export default async function HomePage() {
             <ArrowRight className="h-3.5 w-3.5" />
           </a>
           <a
-            href="https://github.com/Legend-1s-here/KageNova"
+            href="https://github.com/Legend-1s-here/kage_nova"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-3 text-sm font-semibold text-amber-300 transition hover:border-amber-400 hover:bg-amber-500/20 active:scale-[0.98]"
@@ -128,7 +128,7 @@ export default async function HomePage() {
             </div>
 
             <a
-              href="https://github.com/Legend-1s-here/KageNova"
+              href="https://github.com/Legend-1s-here/kage_nova"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-md shadow-amber-500/20 transition hover:from-amber-400 hover:to-amber-500 active:scale-[0.98]"

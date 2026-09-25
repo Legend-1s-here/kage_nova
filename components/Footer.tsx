@@ -24,7 +24,7 @@ export default function Footer() {
             Zero-Login Key Protection
           </span>
           <a
-            href="https://github.com/Legend-1s-here/KageNova"
+            href="https://github.com/Legend-1s-here/kage_nova"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 font-medium text-amber-300 transition hover:border-amber-400 hover:bg-amber-500/20"
