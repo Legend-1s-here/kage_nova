@@ -1,42 +1,53 @@
+import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Code2,
   FolderOpen,
-  Globe,
   Lock,
   PlusCircle,
   Users,
   ArrowRight,
   BookOpen,
 } from "lucide-react";
+import connectToDatabase from "@/lib/db";
+import Group from "@/models/Group";
+import LabCode from "@/models/LabCode";
+import PublicGroupsDirectory, { PublicGroup } from "@/components/PublicGroupsDirectory";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "KAGENOVA — Lab Code Sharing for Students",
 };
 
-interface PublicGroup {
-  name: string;
-  slug: string;
-  isPublic: boolean;
-  createdAt: string;
-  codeCount: number;
-}
-
 async function getPublicGroups(): Promise<PublicGroup[]> {
   try {
-    const baseUrl =
-      process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000";
+    await connectToDatabase();
 
-    const res = await fetch(`${baseUrl}/api/groups`, {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.groups || [];
-  } catch {
+    const groups = await Group.find({ isPublic: true })
+      .select("name slug isPublic createdAt")
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    const groupIds = groups.map((g) => g._id);
+    const counts = await LabCode.aggregate([
+      { $match: { groupId: { $in: groupIds } } },
+      { $group: { _id: "$groupId", count: { $sum: 1 } } },
+    ]);
+
+    const countMap = new Map(counts.map((c) => [c._id.toString(), c.count]));
+
+    return groups.map((g) => ({
+      name: g.name,
+      slug: g.slug,
+      isPublic: g.isPublic,
+      createdAt: g.createdAt ? g.createdAt.toISOString() : new Date().toISOString(),
+      codeCount: countMap.get(g._id.toString()) || 0,
+    }));
+  } catch (error) {
+    console.error("Error fetching public groups directly from DB:", error);
     return [];
   }
 }
@@ -50,7 +61,7 @@ export default async function HomePage() {
       <section className="mb-16 text-center">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-400">
           <Code2 className="h-3.5 w-3.5" />
-          <span>Zero-login. Just a key.</span>
+          <span>Zero-login. Just a group key.</span>
         </div>
 
         <h1 className="mb-4 text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
@@ -129,78 +140,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Public Groups Directory */}
+      {/* Public Groups Directory (Real-time DB query + Live filter) */}
       <section id="explore">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Public Groups</h2>
-            <p className="mt-1 text-sm text-slate-400">
-              Browse publicly shared code libraries — no key needed to view.
-            </p>
-          </div>
-          <span className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-medium text-slate-300">
-            {publicGroups.length} groups
-          </span>
-        </div>
-
-        {publicGroups.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 py-20 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-800/80">
-              <Globe className="h-7 w-7 text-slate-500" />
-            </div>
-            <h3 className="mb-2 text-base font-semibold text-slate-300">
-              No public groups yet
-            </h3>
-            <p className="mb-5 max-w-xs text-sm text-slate-500">
-              Be the first to create a public group and share your lab code with
-              everyone.
-            </p>
-            <Link
-              href="/create-group"
-              className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500"
-            >
-              <PlusCircle className="h-4 w-4" />
-              Create First Group
-            </Link>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {publicGroups.map((group) => (
-              <Link
-                key={group.slug}
-                href={`/g/${group.slug}`}
-                className="group relative flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-900/70 p-5 transition hover:border-brand-500/50 hover:bg-slate-900"
-              >
-                <div>
-                  <div className="mb-3 flex items-start justify-between gap-2">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-600/30 to-indigo-600/30 text-brand-400">
-                      <FolderOpen className="h-5 w-5" />
-                    </div>
-                    <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
-                      <Globe className="h-3 w-3" />
-                      Public
-                    </span>
-                  </div>
-                  <h3 className="mb-1 font-semibold text-white transition group-hover:text-brand-400">
-                    {group.name}
-                  </h3>
-                  <p className="text-xs text-slate-500">/{group.slug}</p>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <Code2 className="h-3.5 w-3.5" />
-                    {group.codeCount}{" "}
-                    {group.codeCount === 1 ? "snippet" : "snippets"}
-                  </span>
-                  <span className="flex items-center gap-1 text-brand-400 opacity-0 transition group-hover:opacity-100">
-                    Open <ArrowRight className="h-3 w-3" />
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        <Suspense fallback={<div className="py-12 text-center text-slate-500">Loading directory…</div>}>
+          <PublicGroupsDirectory initialGroups={publicGroups} />
+        </Suspense>
       </section>
     </div>
   );

@@ -14,14 +14,28 @@ export default function Navbar() {
     e.preventDefault();
     if (!jumpSlug.trim()) return;
 
-    let target = jumpSlug.trim().toLowerCase();
+    let target = jumpSlug.trim();
     // Allow pasting full URL like https://.../g/cs101 or cs101
     if (target.includes("/g/")) {
       target = target.split("/g/")[1].split("/")[0].split("?")[0];
+      setJumpSlug("");
+      setIsMobileOpen(false);
+      router.push(`/g/${encodeURIComponent(target.toLowerCase())}`);
+      return;
     }
+
+    // If target has spaces, navigate to homepage search section
+    if (target.includes(" ")) {
+      setJumpSlug("");
+      setIsMobileOpen(false);
+      router.push(`/?q=${encodeURIComponent(target)}#explore`);
+      return;
+    }
+
+    // Direct slug
     setJumpSlug("");
     setIsMobileOpen(false);
-    router.push(`/g/${encodeURIComponent(target)}`);
+    router.push(`/g/${encodeURIComponent(target.toLowerCase())}`);
   };
 
   return (
