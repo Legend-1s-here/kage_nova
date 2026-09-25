@@ -5,6 +5,9 @@ import LabCode from "@/models/LabCode";
 import { hashKey } from "@/lib/auth";
 import { slugify, validateGroupCreation } from "@/lib/validation";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // GET /api/groups - List all public groups with snippet counts
 export async function GET(req: NextRequest) {
   try {

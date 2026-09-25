@@ -16,6 +16,7 @@ import LabCode from "@/models/LabCode";
 import PublicGroupsDirectory, { PublicGroup } from "@/components/PublicGroupsDirectory";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "KAGENOVA — Lab Code Sharing for Students",

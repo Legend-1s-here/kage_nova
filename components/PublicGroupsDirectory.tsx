@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FolderOpen, Globe, Code2, ArrowRight, Search } from "lucide-react";
+import { FolderOpen, Globe, Code2, ArrowRight, Search, RefreshCw } from "lucide-react";
 
 export interface PublicGroup {
   name: string;
@@ -19,7 +19,27 @@ interface Props {
 
 export default function PublicGroupsDirectory({ initialGroups }: Props) {
   const searchParams = useSearchParams();
+  const [groups, setGroups] = useState<PublicGroup[]>(initialGroups);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Sync latest groups directly via client API on mount to bypass any stale edge cache
+  useEffect(() => {
+    setLoading(true);
+    fetch("/api/groups", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.groups)) {
+          setGroups(data.groups);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to refresh groups:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   useEffect(() => {
     const q = searchParams.get("q");
@@ -28,7 +48,7 @@ export default function PublicGroupsDirectory({ initialGroups }: Props) {
     }
   }, [searchParams]);
 
-  const filteredGroups = initialGroups.filter((g) => {
+  const filteredGroups = groups.filter((g) => {
     const query = search.toLowerCase().trim();
     if (!query) return true;
     return (
@@ -66,7 +86,12 @@ export default function PublicGroupsDirectory({ initialGroups }: Props) {
         </div>
       </div>
 
-      {filteredGroups.length === 0 ? (
+      {loading && groups.length === 0 ? (
+        <div className="py-16 text-center text-slate-500">
+          <RefreshCw className="mx-auto mb-2 h-6 w-6 animate-spin text-brand-400" />
+          Loading groups…
+        </div>
+      ) : filteredGroups.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 py-16 text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-800/80">
             <Globe className="h-7 w-7 text-slate-500" />
