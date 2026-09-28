@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   description:
     "Share and access programming lab codes organized by groups. No accounts needed — just a group key.",
   keywords: ["lab code", "student", "code sharing", "programming", "group"],
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
   openGraph: {
     title: "KAGENOVA",
     description: "Group-based lab code sharing. No signup required.",

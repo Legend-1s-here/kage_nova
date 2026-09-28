@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     await connectToDatabase();
 
     const groups = await Group.find({})
-      .select("name slug isPublic createdAt")
+      .select("name slug isPublic createdAt creatorEmail creatorName")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -39,6 +39,8 @@ export async function GET(req: NextRequest) {
       name: g.name,
       slug: g.slug,
       isPublic: g.isPublic,
+      creatorEmail: g.creatorEmail || "legacy / unassigned",
+      creatorName: g.creatorName || "Anonymous",
       createdAt: g.createdAt,
       codeCount: countMap.get(g._id.toString()) || 0,
     }));

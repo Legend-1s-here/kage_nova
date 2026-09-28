@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import connectToDatabase from "@/lib/db";
 import Group from "@/models/Group";
 import LabCode from "@/models/LabCode";
-import { hashKey } from "@/lib/auth";
+import User from "@/models/User";
+import { hashKey, isModerator } from "@/lib/auth";
+import { getCreatorSession } from "@/lib/creator-auth";
+import { checkInappropriateContent } from "@/lib/content-filter";
 import { slugify, validateGroupCreation } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +29,7 @@ export async function GET(req: NextRequest) {
     }
 
     const groups = await Group.find(filter)
-      .select("name slug isPublic createdAt")
+      .select("name slug isPublic createdAt creatorName")
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
@@ -43,6 +47,7 @@ export async function GET(req: NextRequest) {
       name: g.name,
       slug: g.slug,
       isPublic: g.isPublic,
+      creatorName: g.creatorName || "",
       createdAt: g.createdAt,
       codeCount: countMap.get(g._id.toString()) || 0,
     }));
@@ -57,10 +62,39 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/groups - Create a new group
+// POST /api/groups - Create a new group (Requires Creator Authentication & Content Safety)
 export async function POST(req: NextRequest) {
   try {
+    // 1. Check Creator Authentication (Google Session or Master Moderator)
+    const creator = getCreatorSession(req);
+    const isMod = isModerator(req);
+
+    if (!creator && !isMod) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Please sign in with Google before creating a group.",
+          requiresAuth: true,
+        },
+        { status: 401 }
+      );
+    }
+
     await connectToDatabase();
+
+    // Check if creator account is banned
+    if (creator) {
+      const dbUser = await User.findById(creator.userId);
+      if (dbUser && dbUser.isBanned) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Your account has been suspended from creating groups due to community guideline violations.",
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     const body = await req.json();
     const { valid, error, cleanName, cleanKey, isPublicBool } = validateGroupCreation(
@@ -71,6 +105,15 @@ export async function POST(req: NextRequest) {
 
     if (!valid) {
       return NextResponse.json({ success: false, error }, { status: 400 });
+    }
+
+    // 2. Automated Content Moderation / Profanity Check
+    const moderation = checkInappropriateContent(cleanName);
+    if (!moderation.isClean) {
+      return NextResponse.json(
+        { success: false, error: moderation.reason },
+        { status: 400 }
+      );
     }
 
     // Generate base slug
@@ -100,6 +143,9 @@ export async function POST(req: NextRequest) {
       slug: finalSlug,
       keyHash,
       isPublic: isPublicBool,
+      creatorEmail: creator ? creator.email : "moderator@kagenova.local",
+      creatorName: creator ? creator.name : "Platform Moderator",
+      creatorId: creator ? new mongoose.Types.ObjectId(creator.userId) : null,
     });
 
     return NextResponse.json(

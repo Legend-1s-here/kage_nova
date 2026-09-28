@@ -52,6 +52,28 @@ async function runTests() {
   assert(verifyModToken("invalid.mod.token") === false, "Invalid Mod token rejected");
   assert(verifyGroupToken(modToken, "any-random-group-slug") === true, "Mod token bypasses individual group slug check");
 
+  // 3c. Creator Session Tokens
+  console.log("\n--- Test Group: Creator Session Tokens ---");
+  const { createCreatorToken, verifyCreatorToken } = await import("../lib/creator-auth");
+  const creatorToken = createCreatorToken({
+    id: "user-12345",
+    email: "creator@example.com",
+    name: "Test Creator",
+  });
+  assert(typeof creatorToken === "string" && creatorToken.length > 20, "Generates valid Creator JWT");
+  const verifiedCreator = verifyCreatorToken(creatorToken);
+  assert(verifiedCreator !== null && verifiedCreator.email === "creator@example.com", "Verifies creator session payload");
+  assert(verifyCreatorToken("invalid.creator.token") === null, "Rejects tampered creator token");
+
+  // 3d. Content Moderation & Profanity Filter
+  console.log("\n--- Test Group: Content Moderation & Safety ---");
+  const { checkInappropriateContent } = await import("../lib/content-filter");
+  assert(checkInappropriateContent("CS101 - Algorithms Lab").isClean === true, "Accepts academic group name");
+  assert(checkInappropriateContent("Data Structures Batch A").isClean === true, "Accepts valid batch name");
+  assert(checkInappropriateContent("Fuck this group").isClean === false, "Blocks explicit profanity");
+  assert(checkInappropriateContent("chutiya batch").isClean === false, "Blocks abusive slang");
+  assert(checkInappropriateContent("f@ck_th!s").isClean === false, "Detects leetspeak substitutions");
+
   // 4. Rate Limiter: Sliding Window
   console.log("\n--- Test Group: Rate Limiting ---");
   const testIp = "192.168.1.100";

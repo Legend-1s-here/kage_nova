@@ -16,6 +16,7 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
+  UserCheck,
 } from "lucide-react";
 
 interface GroupData {
@@ -23,6 +24,8 @@ interface GroupData {
   name: string;
   slug: string;
   isPublic: boolean;
+  creatorEmail: string;
+  creatorName: string;
   createdAt: string;
   codeCount: number;
 }
@@ -174,9 +177,12 @@ export default function ModeratorPage() {
   };
 
   const filteredGroups = groups.filter((g) => {
+    const q = search.toLowerCase();
     const matchesSearch =
-      g.name.toLowerCase().includes(search.toLowerCase()) ||
-      g.slug.toLowerCase().includes(search.toLowerCase());
+      g.name.toLowerCase().includes(q) ||
+      g.slug.toLowerCase().includes(q) ||
+      (g.creatorEmail && g.creatorEmail.toLowerCase().includes(q)) ||
+      (g.creatorName && g.creatorName.toLowerCase().includes(q));
 
     if (!matchesSearch) return false;
 
@@ -264,7 +270,7 @@ export default function ModeratorPage() {
             Platform Management
           </h1>
           <p className="text-xs text-slate-400">
-            Full view of all public and private groups with instant administrative controls
+            Full view of all public and private groups with creator accountability & moderation
           </p>
         </div>
 
@@ -328,7 +334,7 @@ export default function ModeratorPage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
-            placeholder="Search all groups by name/slug…"
+            placeholder="Search name, slug, creator email…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-lg border border-slate-700 bg-slate-900 py-2 pl-9 pr-3 text-xs text-slate-200 placeholder-slate-500 focus:border-brand-500 focus:outline-none"
@@ -358,6 +364,7 @@ export default function ModeratorPage() {
           <thead className="bg-slate-950/80 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
             <tr>
               <th className="px-4 py-3.5">Group</th>
+              <th className="px-4 py-3.5">Creator</th>
               <th className="px-4 py-3.5">Visibility</th>
               <th className="px-4 py-3.5">Snippets</th>
               <th className="px-4 py-3.5">Created At</th>
@@ -367,7 +374,7 @@ export default function ModeratorPage() {
           <tbody className="divide-y divide-slate-800/60 font-medium">
             {filteredGroups.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
                   No groups found matching your criteria.
                 </td>
               </tr>
@@ -377,6 +384,13 @@ export default function ModeratorPage() {
                   <td className="px-4 py-3.5">
                     <div className="font-semibold text-white">{g.name}</div>
                     <div className="text-[11px] font-mono text-slate-500">/g/{g.slug}</div>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-1.5 text-slate-200">
+                      <UserCheck className="h-3.5 w-3.5 text-emerald-400" />
+                      <span className="font-medium">{g.creatorName}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500">{g.creatorEmail}</div>
                   </td>
                   <td className="px-4 py-3.5">
                     {g.isPublic ? (

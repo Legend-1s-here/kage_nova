@@ -5,6 +5,9 @@ export interface IGroup extends Document {
   slug: string;
   keyHash: string;
   isPublic: boolean;
+  creatorEmail?: string;
+  creatorName?: string;
+  creatorId?: mongoose.Types.ObjectId;
   createdAt: Date;
 }
 
@@ -31,6 +34,22 @@ const GroupSchema = new Schema<IGroup>(
     isPublic: {
       type: Boolean,
       default: true,
+    },
+    creatorEmail: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      default: "",
+    },
+    creatorName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    creatorId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
     createdAt: {
       type: Date,
