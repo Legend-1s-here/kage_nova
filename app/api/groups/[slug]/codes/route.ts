@@ -74,6 +74,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       title: c.title,
       language: c.language || "other",
       type: c.type || (c.language === "pdf" ? "pdf" : "code"),
+      tagColor: c.tagColor || (c.language === "pdf" || c.type === "pdf" ? "rose" : "indigo"),
       code: c.code || "",
       fileData: c.fileData || "",
       fileName: c.fileName || "",
@@ -148,14 +149,15 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     const isPdfUpload = body.type === "pdf" || (body.language && body.language.toLowerCase() === "pdf") || (body.fileData && typeof body.fileData === "string" && body.fileData.startsWith("data:application/pdf"));
 
     if (isPdfUpload) {
-      // PDF Upload Validation (5MB cap)
+      // PDF Upload Validation (5MB cap & custom tagColor)
       const validation = validatePdfUpload(
         body.title,
         body.fileData,
         body.fileName,
         body.fileSize,
         body.uploaderName,
-        body.description
+        body.description,
+        body.tagColor
       );
 
       if (!validation.valid || !validation.data) {
@@ -170,6 +172,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         title: validation.data.title,
         language: "pdf",
         type: "pdf",
+        tagColor: validation.data.tagColor,
         code: "",
         fileData: validation.data.fileData,
         fileName: validation.data.fileName,
@@ -187,6 +190,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
             title: newLabCode.title,
             language: "pdf",
             type: "pdf",
+            tagColor: newLabCode.tagColor,
             fileName: newLabCode.fileName,
             fileSize: newLabCode.fileSize,
             uploaderName: newLabCode.uploaderName,
@@ -197,13 +201,14 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         { status: 201 }
       );
     } else {
-      // Code Snippet Upload Validation (200KB cap)
+      // Code Snippet Upload Validation (200KB cap & custom tagColor)
       const validation = validateLabCodeUpload(
         body.title,
         body.language,
         body.code,
         body.uploaderName,
-        body.description
+        body.description,
+        body.tagColor
       );
 
       if (!validation.valid || !validation.data) {
@@ -218,6 +223,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         title: validation.data.title,
         language: validation.data.language,
         type: "code",
+        tagColor: validation.data.tagColor,
         code: validation.data.code,
         fileData: "",
         fileName: "",
@@ -235,6 +241,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
             title: newLabCode.title,
             language: newLabCode.language,
             type: "code",
+            tagColor: newLabCode.tagColor,
             code: newLabCode.code,
             uploaderName: newLabCode.uploaderName,
             description: newLabCode.description,

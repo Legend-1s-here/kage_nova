@@ -24,6 +24,7 @@ interface LabCode {
   title: string;
   language: string;
   type?: "code" | "pdf";
+  tagColor?: string;
   code?: string;
   fileData?: string;
   fileName?: string;

@@ -6,6 +6,29 @@ export const MAX_TITLE_LENGTH = 120;
 export const MAX_GROUP_NAME_LENGTH = 80;
 export const MIN_KEY_LENGTH = 6;
 
+export const ALLOWED_TAG_COLORS = [
+  "rose",
+  "indigo",
+  "emerald",
+  "amber",
+  "violet",
+  "cyan",
+  "blue",
+  "pink",
+] as const;
+
+export type TagColor = (typeof ALLOWED_TAG_COLORS)[number];
+
+export function sanitizeTagColor(color: unknown, defaultColor: TagColor = "rose"): TagColor {
+  if (typeof color === "string") {
+    const clean = color.toLowerCase().trim() as TagColor;
+    if (ALLOWED_TAG_COLORS.includes(clean)) {
+      return clean;
+    }
+  }
+  return defaultColor;
+}
+
 /**
  * Generate a clean, URL-friendly slug from a group name.
  */
@@ -69,7 +92,8 @@ export function validateLabCodeUpload(
   language: unknown,
   code: unknown,
   uploaderName?: unknown,
-  description?: unknown
+  description?: unknown,
+  tagColor?: unknown
 ): {
   valid: boolean;
   error?: string;
@@ -79,6 +103,7 @@ export function validateLabCodeUpload(
     code: string;
     uploaderName: string;
     description: string;
+    tagColor: TagColor;
   };
 } {
   if (typeof title !== "string" || !title.trim()) {
@@ -117,6 +142,8 @@ export function validateLabCodeUpload(
       ? description.trim().slice(0, 1000)
       : "";
 
+  const cleanTagColor = sanitizeTagColor(tagColor, "indigo");
+
   return {
     valid: true,
     data: {
@@ -125,6 +152,7 @@ export function validateLabCodeUpload(
       code,
       uploaderName: cleanUploader,
       description: cleanDescription,
+      tagColor: cleanTagColor,
     },
   };
 }
@@ -138,7 +166,8 @@ export function validatePdfUpload(
   fileName?: unknown,
   fileSize?: unknown,
   uploaderName?: unknown,
-  description?: unknown
+  description?: unknown,
+  tagColor?: unknown
 ): {
   valid: boolean;
   error?: string;
@@ -149,6 +178,7 @@ export function validatePdfUpload(
     fileSize: number;
     uploaderName: string;
     description: string;
+    tagColor: TagColor;
   };
 } {
   if (typeof title !== "string" || !title.trim()) {
@@ -203,6 +233,8 @@ export function validatePdfUpload(
       ? description.trim().slice(0, 1000)
       : "";
 
+  const cleanTagColor = sanitizeTagColor(tagColor, "rose");
+
   return {
     valid: true,
     data: {
@@ -212,6 +244,7 @@ export function validatePdfUpload(
       fileSize: cleanFileSize,
       uploaderName: cleanUploader,
       description: cleanDescription,
+      tagColor: cleanTagColor,
     },
   };
 }

@@ -5,6 +5,7 @@ export interface ILabCode extends Document {
   title: string;
   language: string;
   type: "code" | "pdf";
+  tagColor?: string;
   code?: string;
   fileData?: string;
   fileName?: string;
@@ -38,6 +39,11 @@ const LabCodeSchema = new Schema<ILabCode>(
       type: String,
       enum: ["code", "pdf"],
       default: "code",
+    },
+    tagColor: {
+      type: String,
+      default: "rose",
+      trim: true,
     },
     code: {
       type: String,

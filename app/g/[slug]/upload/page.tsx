@@ -14,6 +14,8 @@ import {
   FileText,
   X,
   CheckCircle2,
+  Palette,
+  Check,
 } from "lucide-react";
 
 const LANGUAGES = [
@@ -22,12 +24,23 @@ const LANGUAGES = [
   "Kotlin", "Swift", "Other",
 ];
 
+const COLOR_OPTIONS = [
+  { id: "rose", name: "Red / Rose", bg: "bg-rose-500", border: "border-rose-500", text: "text-rose-400" },
+  { id: "indigo", name: "Indigo Blue", bg: "bg-indigo-500", border: "border-indigo-500", text: "text-indigo-400" },
+  { id: "emerald", name: "Emerald Green", bg: "bg-emerald-500", border: "border-emerald-500", text: "text-emerald-400" },
+  { id: "amber", name: "Amber Gold", bg: "bg-amber-500", border: "border-amber-500", text: "text-amber-400" },
+  { id: "violet", name: "Deep Purple", bg: "bg-purple-500", border: "border-purple-500", text: "text-purple-400" },
+  { id: "cyan", name: "Neon Cyan", bg: "bg-cyan-500", border: "border-cyan-500", text: "text-cyan-400" },
+  { id: "pink", name: "Hot Pink", bg: "bg-pink-500", border: "border-pink-500", text: "text-pink-400" },
+];
+
 export default function UploadPage() {
   const params = useParams();
   const slug = typeof params.slug === "string" ? params.slug : "";
   const router = useRouter();
 
   const [uploadType, setUploadType] = useState<"code" | "pdf">("code");
+  const [tagColor, setTagColor] = useState<string>("rose");
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [showKeyField, setShowKeyField] = useState(false);
@@ -221,6 +234,7 @@ export default function UploadPage() {
               type: "code",
               title: form.title.trim(),
               language: form.language,
+              tagColor,
               code: form.code,
               uploaderName: form.uploaderName.trim(),
               description: form.description.trim(),
@@ -229,6 +243,7 @@ export default function UploadPage() {
               type: "pdf",
               title: form.title.trim(),
               language: "pdf",
+              tagColor,
               fileData: pdfFile?.base64,
               fileName: pdfFile?.name,
               fileSize: pdfFile?.size,
@@ -270,6 +285,8 @@ export default function UploadPage() {
       </div>
     );
   }
+
+  const selectedColor = COLOR_OPTIONS.find((c) => c.id === tagColor) || COLOR_OPTIONS[0];
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
@@ -342,6 +359,7 @@ export default function UploadPage() {
           type="button"
           onClick={() => {
             setUploadType("code");
+            setTagColor("indigo");
             setFileError("");
           }}
           className={`flex items-center justify-center gap-2 rounded-xl border p-3.5 text-sm font-semibold transition ${
@@ -358,6 +376,7 @@ export default function UploadPage() {
           type="button"
           onClick={() => {
             setUploadType("pdf");
+            setTagColor("rose");
             setFileError("");
           }}
           className={`flex items-center justify-center gap-2 rounded-xl border p-3.5 text-sm font-semibold transition ${
@@ -394,6 +413,36 @@ export default function UploadPage() {
             maxLength={120}
             className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
+        </div>
+
+        {/* Color Theme Selector */}
+        <div>
+          <label className="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-200">
+            <Palette className="h-4 w-4 text-slate-400" />
+            <span>Badge & Card Accent Color</span>
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            {COLOR_OPTIONS.map((c) => {
+              const isSelected = tagColor === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setTagColor(c.id)}
+                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
+                    isSelected
+                      ? `${c.border} bg-slate-800 text-white shadow-sm ring-1 ring-white/20`
+                      : "border-slate-800 bg-slate-950/80 text-slate-400 hover:border-slate-700 hover:text-slate-300"
+                  }`}
+                >
+                  <span className={`h-3 w-3 rounded-full ${c.bg} flex items-center justify-center flex-shrink-0`}>
+                    {isSelected && <Check className="h-2 w-2 text-white stroke-[3]" />}
+                  </span>
+                  <span>{c.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* CODE TYPE: Language selector + code textarea */}
@@ -498,11 +547,13 @@ export default function UploadPage() {
                 onClick={() => pdfFileInputRef.current?.click()}
                 className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition ${
                   isDragging
-                    ? "border-rose-400 bg-rose-500/10"
-                    : "border-slate-700 bg-slate-950/80 hover:border-rose-500/50 hover:bg-slate-950"
+                    ? `${selectedColor.border} bg-slate-900/90`
+                    : `border-slate-700 bg-slate-950/80 hover:${selectedColor.border} hover:bg-slate-950`
                 }`}
               >
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-rose-500/15 text-rose-400 shadow-inner">
+                <div
+                  className={`mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-800 ${selectedColor.text} shadow-inner`}
+                >
                   <FileText className="h-6 w-6" />
                 </div>
                 <h4 className="text-sm font-semibold text-white">
@@ -513,9 +564,9 @@ export default function UploadPage() {
                 </p>
               </div>
             ) : (
-              <div className="flex items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/10 p-4">
+              <div className={`flex items-center justify-between rounded-xl border ${selectedColor.border} bg-slate-900/90 p-4`}>
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-rose-500/20 text-rose-400">
+                  <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-800 ${selectedColor.text}`}>
                     <FileText className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
@@ -535,7 +586,7 @@ export default function UploadPage() {
                 <button
                   type="button"
                   onClick={() => setPdfFile(null)}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-500/20 hover:text-white"
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
                   title="Remove file"
                 >
                   <X className="h-4 w-4" />

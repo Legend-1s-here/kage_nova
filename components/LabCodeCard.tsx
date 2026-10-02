@@ -22,6 +22,7 @@ interface LabCodeCardProps {
     title: string;
     language: string;
     type?: "code" | "pdf";
+    tagColor?: string;
     code?: string;
     fileData?: string;
     fileName?: string;
@@ -33,6 +34,137 @@ interface LabCodeCardProps {
   isUnlocked: boolean;
   onDelete?: (id: string) => void;
 }
+
+const COLOR_THEMES: Record<
+  string,
+  {
+    badgeBg: string;
+    badgeText: string;
+    badgeBorder: string;
+    cardBorder: string;
+    borderHover: string;
+    btnBg: string;
+    btnHover: string;
+    btnBorder: string;
+    btnText: string;
+    primaryBtnBg: string;
+    primaryBtnHover: string;
+    iconText: string;
+  }
+> = {
+  rose: {
+    badgeBg: "bg-rose-500/15",
+    badgeText: "text-rose-400",
+    badgeBorder: "border-rose-500/30",
+    cardBorder: "border-rose-500/20",
+    borderHover: "hover:border-rose-500/50",
+    btnBg: "bg-rose-500/10",
+    btnHover: "hover:bg-rose-500/20",
+    btnBorder: "border-rose-500/30",
+    btnText: "text-rose-300",
+    primaryBtnBg: "bg-rose-600",
+    primaryBtnHover: "hover:bg-rose-500",
+    iconText: "text-rose-400",
+  },
+  indigo: {
+    badgeBg: "bg-indigo-500/15",
+    badgeText: "text-indigo-400",
+    badgeBorder: "border-indigo-500/30",
+    cardBorder: "border-indigo-500/20",
+    borderHover: "hover:border-indigo-500/50",
+    btnBg: "bg-indigo-500/10",
+    btnHover: "hover:bg-indigo-500/20",
+    btnBorder: "border-indigo-500/30",
+    btnText: "text-indigo-300",
+    primaryBtnBg: "bg-indigo-600",
+    primaryBtnHover: "hover:bg-indigo-500",
+    iconText: "text-indigo-400",
+  },
+  blue: {
+    badgeBg: "bg-blue-500/15",
+    badgeText: "text-blue-400",
+    badgeBorder: "border-blue-500/30",
+    cardBorder: "border-blue-500/20",
+    borderHover: "hover:border-blue-500/50",
+    btnBg: "bg-blue-500/10",
+    btnHover: "hover:bg-blue-500/20",
+    btnBorder: "border-blue-500/30",
+    btnText: "text-blue-300",
+    primaryBtnBg: "bg-blue-600",
+    primaryBtnHover: "hover:bg-blue-500",
+    iconText: "text-blue-400",
+  },
+  emerald: {
+    badgeBg: "bg-emerald-500/15",
+    badgeText: "text-emerald-400",
+    badgeBorder: "border-emerald-500/30",
+    cardBorder: "border-emerald-500/20",
+    borderHover: "hover:border-emerald-500/50",
+    btnBg: "bg-emerald-500/10",
+    btnHover: "hover:bg-emerald-500/20",
+    btnBorder: "border-emerald-500/30",
+    btnText: "text-emerald-300",
+    primaryBtnBg: "bg-emerald-600",
+    primaryBtnHover: "hover:bg-emerald-500",
+    iconText: "text-emerald-400",
+  },
+  amber: {
+    badgeBg: "bg-amber-500/15",
+    badgeText: "text-amber-400",
+    badgeBorder: "border-amber-500/30",
+    cardBorder: "border-amber-500/20",
+    borderHover: "hover:border-amber-500/50",
+    btnBg: "bg-amber-500/10",
+    btnHover: "hover:bg-amber-500/20",
+    btnBorder: "border-amber-500/30",
+    btnText: "text-amber-300",
+    primaryBtnBg: "bg-amber-600",
+    primaryBtnHover: "hover:bg-amber-500",
+    iconText: "text-amber-400",
+  },
+  violet: {
+    badgeBg: "bg-purple-500/15",
+    badgeText: "text-purple-400",
+    badgeBorder: "border-purple-500/30",
+    cardBorder: "border-purple-500/20",
+    borderHover: "hover:border-purple-500/50",
+    btnBg: "bg-purple-500/10",
+    btnHover: "hover:bg-purple-500/20",
+    btnBorder: "border-purple-500/30",
+    btnText: "text-purple-300",
+    primaryBtnBg: "bg-purple-600",
+    primaryBtnHover: "hover:bg-purple-500",
+    iconText: "text-purple-400",
+  },
+  cyan: {
+    badgeBg: "bg-cyan-500/15",
+    badgeText: "text-cyan-400",
+    badgeBorder: "border-cyan-500/30",
+    cardBorder: "border-cyan-500/20",
+    borderHover: "hover:border-cyan-500/50",
+    btnBg: "bg-cyan-500/10",
+    btnHover: "hover:bg-cyan-500/20",
+    btnBorder: "border-cyan-500/30",
+    btnText: "text-cyan-300",
+    primaryBtnBg: "bg-cyan-600",
+    primaryBtnHover: "hover:bg-cyan-500",
+    iconText: "text-cyan-400",
+  },
+  pink: {
+    badgeBg: "bg-pink-500/15",
+    badgeText: "text-pink-400",
+    badgeBorder: "border-pink-500/30",
+    cardBorder: "border-pink-500/20",
+    borderHover: "hover:border-pink-500/50",
+    btnBg: "bg-pink-500/10",
+    btnHover: "hover:bg-pink-500/20",
+    btnBorder: "border-pink-500/30",
+    btnText: "text-pink-300",
+    primaryBtnBg: "bg-pink-600",
+    primaryBtnHover: "hover:bg-pink-500",
+    iconText: "text-pink-400",
+  },
+};
 
 const LANGUAGE_MAP: Record<string, string> = {
   c: "c",
@@ -138,6 +270,9 @@ export default function LabCodeCard({ code, isUnlocked, onDelete }: LabCodeCardP
   const syntaxLang = LANGUAGE_MAP[code.language.toLowerCase()] || "plaintext";
   const fileExt = FILE_EXT_MAP[code.language.toLowerCase()] || "txt";
 
+  const colorKey = code.tagColor?.toLowerCase() || (isPdf ? "rose" : "indigo");
+  const theme = COLOR_THEMES[colorKey] || (isPdf ? COLOR_THEMES.rose : COLOR_THEMES.indigo);
+
   const handleCopy = () => {
     if (!code.code) return;
     navigator.clipboard.writeText(code.code);
@@ -168,9 +303,12 @@ export default function LabCodeCard({ code, isUnlocked, onDelete }: LabCodeCardP
     if (!confirm(`Delete this ${isPdf ? "PDF" : "snippet"}? This cannot be undone.`)) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/groups/${window.location.pathname.split("/g/")[1].split("/")[0]}/codes/${code._id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `/api/groups/${window.location.pathname.split("/g/")[1].split("/")[0]}/codes/${code._id}`,
+        {
+          method: "DELETE",
+        }
+      );
       const data = await res.json();
       if (data.success && onDelete) onDelete(code._id);
     } catch {
@@ -181,18 +319,32 @@ export default function LabCodeCard({ code, isUnlocked, onDelete }: LabCodeCardP
   };
 
   return (
-    <div className={`overflow-hidden rounded-xl border bg-slate-900/60 transition ${isPdf ? "border-rose-500/20 hover:border-rose-500/40" : "border-slate-800 hover:border-slate-700"}`}>
+    <div
+      className={`overflow-hidden rounded-xl border bg-slate-900/60 transition ${
+        isPdf
+          ? `${theme.cardBorder} ${theme.borderHover}`
+          : "border-slate-800 hover:border-slate-700"
+      }`}
+    >
       {/* Header */}
       <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3">
         <div className="min-w-0 flex-1">
           <div className="mb-1.5 flex flex-wrap items-center gap-2">
             {isPdf ? (
-              <span className="flex items-center gap-1 rounded-md bg-rose-500/15 px-2 py-0.5 text-[11px] font-bold text-rose-400">
+              <span
+                className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold ${theme.badgeBg} ${theme.badgeText}`}
+              >
                 <FileText className="h-3 w-3" /> PDF Document
                 {code.fileSize ? ` · ${formatFileSize(code.fileSize)}` : ""}
               </span>
             ) : (
-              <span className="rounded-md bg-brand-500/15 px-2 py-0.5 text-[11px] font-semibold text-brand-400">
+              <span
+                className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+                  code.tagColor && COLOR_THEMES[code.tagColor]
+                    ? `${COLOR_THEMES[code.tagColor].badgeBg} ${COLOR_THEMES[code.tagColor].badgeText}`
+                    : "bg-brand-500/15 text-brand-400"
+                }`}
+              >
                 {getLanguageLabel(code.language)}
               </span>
             )}
@@ -226,18 +378,23 @@ export default function LabCodeCard({ code, isUnlocked, onDelete }: LabCodeCardP
             onClick={() => setExpanded((e) => !e)}
             className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
               isPdf
-                ? "border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+                ? `${theme.btnBorder} ${theme.btnBg} ${theme.btnText} ${theme.btnHover}`
                 : "border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600 hover:text-white"
             }`}
           >
-            {isPdf ? <FileText className="h-3.5 w-3.5" /> : <Code2 className="h-3.5 w-3.5" />}
+            {isPdf ? (
+              <FileText className="h-3.5 w-3.5" />
+            ) : (
+              <Code2 className="h-3.5 w-3.5" />
+            )}
             {expanded ? (
               <>
                 Hide <ChevronUp className="h-3.5 w-3.5" />
               </>
             ) : (
               <>
-                {isPdf ? "View PDF" : "View"} <ChevronDown className="h-3.5 w-3.5" />
+                {isPdf ? "View PDF" : "View"}{" "}
+                <ChevronDown className="h-3.5 w-3.5" />
               </>
             )}
           </button>
@@ -276,7 +433,7 @@ export default function LabCodeCard({ code, isUnlocked, onDelete }: LabCodeCardP
             <div className="bg-slate-950/90 p-3">
               <div className="mb-2 flex items-center justify-between px-1">
                 <span className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
-                  <FileText className="h-3.5 w-3.5 text-rose-400" />
+                  <FileText className={`h-3.5 w-3.5 ${theme.iconText}`} />
                   {code.fileName || "PDF Document"}
                 </span>
                 <div className="flex items-center gap-2">
@@ -290,7 +447,7 @@ export default function LabCodeCard({ code, isUnlocked, onDelete }: LabCodeCardP
                   </a>
                   <button
                     onClick={handleDownload}
-                    className="flex items-center gap-1 rounded-md bg-rose-600 px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-rose-500"
+                    className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium text-white transition ${theme.primaryBtnBg} ${theme.primaryBtnHover}`}
                   >
                     <Download className="h-3 w-3" /> Save PDF
                   </button>
@@ -310,7 +467,9 @@ export default function LabCodeCard({ code, isUnlocked, onDelete }: LabCodeCardP
             <>
               {/* Toolbar */}
               <div className="flex items-center justify-between bg-slate-950/80 px-3 py-2">
-                <span className="text-xs font-mono text-slate-500">{syntaxLang}</span>
+                <span className="text-xs font-mono text-slate-500">
+                  {syntaxLang}
+                </span>
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={handleCopy}

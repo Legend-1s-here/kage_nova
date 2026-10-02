@@ -118,7 +118,7 @@ async function runTests() {
 
   // 7. Validation: PDF Document Upload & 5MB limit
   console.log("\n--- Test Group: PDF Document Upload Validation ---");
-  const { validatePdfUpload, MAX_PDF_BYTES } = await import("../lib/validation");
+  const { validatePdfUpload, MAX_PDF_BYTES, sanitizeTagColor } = await import("../lib/validation");
   const dummyPdfData = "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrCg==";
   assert(validatePdfUpload("Lab 3 Manual", dummyPdfData).valid === true, "Valid PDF data URI passes");
   assert(validatePdfUpload("", dummyPdfData).valid === false, "Empty PDF title rejected");
@@ -127,6 +127,13 @@ async function runTests() {
 
   const oversizedPdfData = "data:application/pdf;base64," + "A".repeat(Math.ceil((MAX_PDF_BYTES + 1000) * 4 / 3));
   assert(validatePdfUpload("Huge PDF", oversizedPdfData).valid === false, "PDF exceeding 5MB rejected");
+
+  // 8. Validation: Color Palette Sanitization
+  console.log("\n--- Test Group: Color Palette Sanitization ---");
+  assert(sanitizeTagColor("emerald") === "emerald", "Accepts valid emerald color");
+  assert(sanitizeTagColor("cyan") === "cyan", "Accepts valid cyan color");
+  assert(sanitizeTagColor("invalid-color", "rose") === "rose", "Falls back to default rose on invalid color");
+  assert(sanitizeTagColor(undefined, "indigo") === "indigo", "Falls back to default indigo on undefined");
 
   console.log("\n=========================================");
   console.log(`Results: ${passed} Passed, ${failed} Failed`);
