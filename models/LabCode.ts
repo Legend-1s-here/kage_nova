@@ -4,7 +4,11 @@ export interface ILabCode extends Document {
   groupId: Types.ObjectId;
   title: string;
   language: string;
-  code: string;
+  type: "code" | "pdf";
+  code?: string;
+  fileData?: string;
+  fileName?: string;
+  fileSize?: number;
   uploaderName?: string;
   description?: string;
   createdAt: Date;
@@ -26,15 +30,31 @@ const LabCodeSchema = new Schema<ILabCode>(
     },
     language: {
       type: String,
-      required: [true, "Programming language is required"],
+      required: [true, "Programming language or format is required"],
       trim: true,
       lowercase: true,
     },
+    type: {
+      type: String,
+      enum: ["code", "pdf"],
+      default: "code",
+    },
     code: {
       type: String,
-      required: [true, "Code content is required"],
-      // Max 200KB payload enforcement
-      maxlength: [204800, "Code content cannot exceed 200KB"],
+      default: "",
+    },
+    fileData: {
+      type: String,
+      default: "",
+    },
+    fileName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    fileSize: {
+      type: Number,
+      default: 0,
     },
     uploaderName: {
       type: String,

@@ -3,7 +3,7 @@ import connectToDatabase from "@/lib/db";
 import Group from "@/models/Group";
 import LabCode from "@/models/LabCode";
 import { hasValidGroupSession, verifyKey } from "@/lib/auth";
-import { validateLabCodeUpload } from "@/lib/validation";
+import { validateLabCodeUpload, validatePdfUpload } from "@/lib/validation";
 
 interface RouteParams {
   params: {
@@ -11,7 +11,9 @@ interface RouteParams {
   };
 }
 
-// GET /api/groups/[slug]/codes - List snippets for a group
+export const dynamic = "force-dynamic";
+
+// GET /api/groups/[slug]/codes - List snippets and documents for a group
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     const slug = params.slug?.toLowerCase().trim();
@@ -39,15 +41,26 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const filter: Record<string, unknown> = { groupId: group._id };
 
     if (languageFilter && languageFilter !== "all") {
-      filter.language = languageFilter;
+      if (languageFilter === "pdf") {
+        filter.$or = [{ language: "pdf" }, { type: "pdf" }];
+      } else {
+        filter.language = languageFilter;
+      }
     }
 
     if (searchQuery) {
-      filter.$or = [
+      const searchOr = [
         { title: { $regex: searchQuery, $options: "i" } },
         { description: { $regex: searchQuery, $options: "i" } },
         { uploaderName: { $regex: searchQuery, $options: "i" } },
+        { fileName: { $regex: searchQuery, $options: "i" } },
       ];
+      if (filter.$or) {
+        filter.$and = [{ $or: filter.$or }, { $or: searchOr }];
+        delete filter.$or;
+      } else {
+        filter.$or = searchOr;
+      }
     }
 
     const codes = await LabCode.find(filter)
@@ -55,12 +68,16 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       .limit(100)
       .lean();
 
-    // Map _id to string for clean serialization
+    // Map _id and fields for clean serialization
     const formattedCodes = codes.map((c) => ({
       _id: c._id.toString(),
       title: c.title,
-      language: c.language,
-      code: c.code,
+      language: c.language || "other",
+      type: c.type || (c.language === "pdf" ? "pdf" : "code"),
+      code: c.code || "",
+      fileData: c.fileData || "",
+      fileName: c.fileName || "",
+      fileSize: c.fileSize || 0,
       uploaderName: c.uploaderName || "Anonymous",
       description: c.description || "",
       createdAt: c.createdAt,
@@ -87,7 +104,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   }
 }
 
-// POST /api/groups/[slug]/codes - Upload a new lab code snippet (requires group key/session)
+// POST /api/groups/[slug]/codes - Upload a new code snippet or PDF document (requires group key/session)
 export async function POST(req: NextRequest, { params }: RouteParams) {
   try {
     const slug = params.slug?.toLowerCase().trim();
@@ -121,58 +138,116 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         {
           success: false,
-          error: "Group access key required to upload or edit codes in this group",
+          error: "Group access key required to upload or edit in this group",
           requiresUnlock: true,
         },
         { status: 401 }
       );
     }
 
-    // Server-side validation (title, language, code, max 200KB payload limit)
-    const validation = validateLabCodeUpload(
-      body.title,
-      body.language,
-      body.code,
-      body.uploaderName,
-      body.description
-    );
+    const isPdfUpload = body.type === "pdf" || (body.language && body.language.toLowerCase() === "pdf") || (body.fileData && typeof body.fileData === "string" && body.fileData.startsWith("data:application/pdf"));
 
-    if (!validation.valid || !validation.data) {
+    if (isPdfUpload) {
+      // PDF Upload Validation (5MB cap)
+      const validation = validatePdfUpload(
+        body.title,
+        body.fileData,
+        body.fileName,
+        body.fileSize,
+        body.uploaderName,
+        body.description
+      );
+
+      if (!validation.valid || !validation.data) {
+        return NextResponse.json(
+          { success: false, error: validation.error },
+          { status: 400 }
+        );
+      }
+
+      const newLabCode = await LabCode.create({
+        groupId: group._id,
+        title: validation.data.title,
+        language: "pdf",
+        type: "pdf",
+        code: "",
+        fileData: validation.data.fileData,
+        fileName: validation.data.fileName,
+        fileSize: validation.data.fileSize,
+        uploaderName: validation.data.uploaderName,
+        description: validation.data.description,
+      });
+
       return NextResponse.json(
-        { success: false, error: validation.error },
-        { status: 400 }
+        {
+          success: true,
+          message: "PDF document uploaded successfully",
+          code: {
+            _id: newLabCode._id.toString(),
+            title: newLabCode.title,
+            language: "pdf",
+            type: "pdf",
+            fileName: newLabCode.fileName,
+            fileSize: newLabCode.fileSize,
+            uploaderName: newLabCode.uploaderName,
+            description: newLabCode.description,
+            createdAt: newLabCode.createdAt,
+          },
+        },
+        { status: 201 }
+      );
+    } else {
+      // Code Snippet Upload Validation (200KB cap)
+      const validation = validateLabCodeUpload(
+        body.title,
+        body.language,
+        body.code,
+        body.uploaderName,
+        body.description
+      );
+
+      if (!validation.valid || !validation.data) {
+        return NextResponse.json(
+          { success: false, error: validation.error },
+          { status: 400 }
+        );
+      }
+
+      const newLabCode = await LabCode.create({
+        groupId: group._id,
+        title: validation.data.title,
+        language: validation.data.language,
+        type: "code",
+        code: validation.data.code,
+        fileData: "",
+        fileName: "",
+        fileSize: 0,
+        uploaderName: validation.data.uploaderName,
+        description: validation.data.description,
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Code snippet uploaded successfully",
+          code: {
+            _id: newLabCode._id.toString(),
+            title: newLabCode.title,
+            language: newLabCode.language,
+            type: "code",
+            code: newLabCode.code,
+            uploaderName: newLabCode.uploaderName,
+            description: newLabCode.description,
+            createdAt: newLabCode.createdAt,
+          },
+        },
+        { status: 201 }
       );
     }
-
-    const newLabCode = await LabCode.create({
-      groupId: group._id,
-      title: validation.data.title,
-      language: validation.data.language,
-      code: validation.data.code,
-      uploaderName: validation.data.uploaderName,
-      description: validation.data.description,
-    });
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Code snippet uploaded successfully",
-        code: {
-          _id: newLabCode._id.toString(),
-          title: newLabCode.title,
-          language: newLabCode.language,
-          code: newLabCode.code,
-          uploaderName: newLabCode.uploaderName,
-          description: newLabCode.description,
-          createdAt: newLabCode.createdAt,
-        },
-      },
-      { status: 201 }
-    );
   } catch (error) {
-    console.error("Error creating lab code:", error);
+    console.error("Error creating lab code or PDF:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to upload lab code" },
+      { success: false, error: "Failed to upload" },
       { status: 500 }
     );
   }

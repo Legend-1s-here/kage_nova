@@ -11,6 +11,9 @@ import {
   EyeOff,
   Upload,
   Lock,
+  FileText,
+  X,
+  CheckCircle2,
 } from "lucide-react";
 
 const LANGUAGES = [
@@ -24,6 +27,7 @@ export default function UploadPage() {
   const slug = typeof params.slug === "string" ? params.slug : "";
   const router = useRouter();
 
+  const [uploadType, setUploadType] = useState<"code" | "pdf">("code");
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [showKeyField, setShowKeyField] = useState(false);
@@ -32,6 +36,7 @@ export default function UploadPage() {
   const [unlockError, setUnlockError] = useState("");
   const [unlocking, setUnlocking] = useState(false);
 
+  // Form State
   const [form, setForm] = useState({
     title: "",
     language: "Python",
@@ -40,11 +45,21 @@ export default function UploadPage() {
     description: "",
   });
 
+  // PDF specific state
+  const [pdfFile, setPdfFile] = useState<{
+    name: string;
+    size: number;
+    base64: string;
+  } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
   const [langOpen, setLangOpen] = useState(false);
   const [fileError, setFileError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const codeFileInputRef = useRef<HTMLInputElement>(null);
+  const pdfFileInputRef = useRef<HTMLInputElement>(null);
 
   // Check session on mount
   useEffect(() => {
@@ -87,7 +102,8 @@ export default function UploadPage() {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle source code file upload (.py, .cpp, .java, etc.)
+  const handleCodeFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -131,6 +147,51 @@ export default function UploadPage() {
     }
   };
 
+  // Handle PDF file selection
+  const processPdfFile = (file: File) => {
+    setFileError("");
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      setFileError("Please select a valid .pdf file.");
+      return;
+    }
+
+    // 5MB limit
+    if (file.size > 5242880) {
+      setFileError(`PDF exceeds 5MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB).`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target?.result;
+      if (typeof base64 === "string") {
+        setPdfFile({
+          name: file.name,
+          size: file.size,
+          base64,
+        });
+        // Pre-fill title if empty
+        if (!form.title.trim()) {
+          const cleanTitle = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+          setForm((f) => ({ ...f, title: cleanTitle }));
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processPdfFile(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processPdfFile(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError("");
@@ -139,23 +200,46 @@ export default function UploadPage() {
       setSubmitError("Title is required.");
       return;
     }
-    if (!form.code.trim()) {
-      setSubmitError("Code cannot be empty.");
-      return;
+
+    if (uploadType === "code") {
+      if (!form.code.trim()) {
+        setSubmitError("Code cannot be empty.");
+        return;
+      }
+    } else {
+      if (!pdfFile || !pdfFile.base64) {
+        setSubmitError("Please select a PDF document to upload.");
+        return;
+      }
     }
 
     setSubmitting(true);
     try {
+      const payload =
+        uploadType === "code"
+          ? {
+              type: "code",
+              title: form.title.trim(),
+              language: form.language,
+              code: form.code,
+              uploaderName: form.uploaderName.trim(),
+              description: form.description.trim(),
+            }
+          : {
+              type: "pdf",
+              title: form.title.trim(),
+              language: "pdf",
+              fileData: pdfFile?.base64,
+              fileName: pdfFile?.name,
+              fileSize: pdfFile?.size,
+              uploaderName: form.uploaderName.trim(),
+              description: form.description.trim(),
+            };
+
       const res = await fetch(`/api/groups/${slug}/codes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: form.title.trim(),
-          language: form.language,
-          code: form.code,
-          uploaderName: form.uploaderName.trim(),
-          description: form.description.trim(),
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -196,9 +280,9 @@ export default function UploadPage() {
         >
           <ArrowLeft className="h-4 w-4" /> Back to Group
         </Link>
-        <h1 className="text-2xl font-bold text-white">Upload Lab Code</h1>
+        <h1 className="text-2xl font-bold text-white">Upload to Group</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Share a code snippet with your group. Group key required.
+          Share a code snippet or PDF document with your group. Group key required.
         </p>
       </div>
 
@@ -210,7 +294,7 @@ export default function UploadPage() {
             <span className="text-sm font-semibold">Editing Locked</span>
           </div>
           <p className="mb-3 text-xs text-slate-400">
-            You need to enter the group key to upload code.
+            You need to enter the group key to upload content.
           </p>
           {!showKeyField ? (
             <button
@@ -252,6 +336,41 @@ export default function UploadPage() {
         </div>
       )}
 
+      {/* Upload Type Switcher */}
+      <div className="mb-6 grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            setUploadType("code");
+            setFileError("");
+          }}
+          className={`flex items-center justify-center gap-2 rounded-xl border p-3.5 text-sm font-semibold transition ${
+            uploadType === "code"
+              ? "border-brand-500 bg-brand-500/15 text-white shadow-sm shadow-brand-500/20"
+              : "border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+          }`}
+        >
+          <Code2 className={`h-4 w-4 ${uploadType === "code" ? "text-brand-400" : ""}`} />
+          <span>Code Snippet</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setUploadType("pdf");
+            setFileError("");
+          }}
+          className={`flex items-center justify-center gap-2 rounded-xl border p-3.5 text-sm font-semibold transition ${
+            uploadType === "pdf"
+              ? "border-rose-500 bg-rose-500/15 text-white shadow-sm shadow-rose-500/20"
+              : "border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+          }`}
+        >
+          <FileText className={`h-4 w-4 ${uploadType === "pdf" ? "text-rose-400" : ""}`} />
+          <span>PDF Document</span>
+        </button>
+      </div>
+
       {/* Upload form */}
       <form
         onSubmit={handleSubmit}
@@ -260,91 +379,175 @@ export default function UploadPage() {
         {/* Title */}
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-200">
-            Snippet Title <span className="text-red-400">*</span>
+            {uploadType === "code" ? "Snippet Title" : "Document Title"}{" "}
+            <span className="text-red-400">*</span>
           </label>
           <input
             type="text"
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            placeholder="e.g. Lab 5 – Binary Search Tree"
+            placeholder={
+              uploadType === "code"
+                ? "e.g. Lab 5 – Binary Search Tree"
+                : "e.g. Lab Manual 3 – Database Queries PDF"
+            }
             maxLength={120}
             className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
 
-        {/* Language selector */}
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-200">
-            Language <span className="text-red-400">*</span>
-          </label>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setLangOpen((s) => !s)}
-              className="flex w-full items-center justify-between rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 focus:border-brand-500 focus:outline-none"
-            >
-              <span className="flex items-center gap-2">
-                <Code2 className="h-4 w-4 text-brand-400" />
-                {form.language}
-              </span>
-              <ChevronDown className="h-4 w-4 text-slate-500" />
-            </button>
-            {langOpen && (
-              <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-950 shadow-xl">
-                {LANGUAGES.map((lang) => (
-                  <button
-                    key={lang}
-                    type="button"
-                    onClick={() => {
-                      setForm((f) => ({ ...f, language: lang }));
-                      setLangOpen(false);
-                    }}
-                    className={`w-full px-3 py-2 text-left text-sm transition hover:bg-slate-800 ${form.language === lang ? "text-brand-400 font-medium" : "text-slate-300"}`}
-                  >
-                    {lang}
-                  </button>
-                ))}
+        {/* CODE TYPE: Language selector + code textarea */}
+        {uploadType === "code" && (
+          <>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-200">
+                Language <span className="text-red-400">*</span>
+              </label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setLangOpen((s) => !s)}
+                  className="flex w-full items-center justify-between rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 focus:border-brand-500 focus:outline-none"
+                >
+                  <span className="flex items-center gap-2">
+                    <Code2 className="h-4 w-4 text-brand-400" />
+                    {form.language}
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-slate-500" />
+                </button>
+                {langOpen && (
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-950 shadow-xl">
+                    {LANGUAGES.map((lang) => (
+                      <button
+                        key={lang}
+                        type="button"
+                        onClick={() => {
+                          setForm((f) => ({ ...f, language: lang }));
+                          setLangOpen(false);
+                        }}
+                        className={`w-full px-3 py-2 text-left text-sm transition hover:bg-slate-800 ${form.language === lang ? "text-brand-400 font-medium" : "text-slate-300"}`}
+                      >
+                        {lang}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-sm font-medium text-slate-200">
+                  Code <span className="text-red-400">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => codeFileInputRef.current?.click()}
+                  className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300"
+                >
+                  <Upload className="h-3.5 w-3.5" /> Upload file
+                </button>
+              </div>
+              <input
+                ref={codeFileInputRef}
+                type="file"
+                accept=".c,.cpp,.py,.java,.js,.ts,.sql,.html,.css,.go,.rs,.php,.sh,.rb,.kt,.swift,.txt"
+                onChange={handleCodeFileUpload}
+                className="hidden"
+              />
+              {fileError && (
+                <p className="mb-1 text-xs text-red-400">{fileError}</p>
+              )}
+              <textarea
+                value={form.code}
+                onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+                placeholder="Paste your code here or use 'Upload file' above…"
+                rows={12}
+                className="w-full resize-y rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 font-mono text-xs text-slate-100 placeholder-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                spellCheck={false}
+              />
+              <p className="mt-1 text-right text-[11px] text-slate-500">
+                {Math.round(new Blob([form.code]).size / 1024)} KB / 200 KB max
+              </p>
+            </div>
+          </>
+        )}
+
+        {/* PDF TYPE: PDF File Dropzone */}
+        {uploadType === "pdf" && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-200">
+              PDF Document <span className="text-red-400">*</span>
+            </label>
+            <input
+              ref={pdfFileInputRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              onChange={handlePdfChange}
+              className="hidden"
+            />
+
+            {!pdfFile ? (
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => pdfFileInputRef.current?.click()}
+                className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition ${
+                  isDragging
+                    ? "border-rose-400 bg-rose-500/10"
+                    : "border-slate-700 bg-slate-950/80 hover:border-rose-500/50 hover:bg-slate-950"
+                }`}
+              >
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-rose-500/15 text-rose-400 shadow-inner">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <h4 className="text-sm font-semibold text-white">
+                  Click or drag & drop PDF here
+                </h4>
+                <p className="mt-1 text-xs text-slate-400">
+                  Lab manuals, question papers, handwritten solution PDFs (up to 5 MB)
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/10 p-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-rose-500/20 text-rose-400">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-white">
+                      {pdfFile.name}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                      <span>{(pdfFile.size / (1024 * 1024)).toFixed(2)} MB</span>
+                      <span>·</span>
+                      <span className="text-emerald-400 flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" /> Ready to upload
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setPdfFile(null)}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-500/20 hover:text-white"
+                  title="Remove file"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Code textarea + file upload */}
-        <div>
-          <div className="mb-1.5 flex items-center justify-between">
-            <label className="text-sm font-medium text-slate-200">
-              Code <span className="text-red-400">*</span>
-            </label>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300"
-            >
-              <Upload className="h-3.5 w-3.5" /> Upload file
-            </button>
+            {fileError && (
+              <p className="mt-2 text-xs text-red-400">{fileError}</p>
+            )}
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".c,.cpp,.py,.java,.js,.ts,.sql,.html,.css,.go,.rs,.php,.sh,.rb,.kt,.swift,.txt"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-          {fileError && (
-            <p className="mb-1 text-xs text-red-400">{fileError}</p>
-          )}
-          <textarea
-            value={form.code}
-            onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
-            placeholder="Paste your code here or use 'Upload file' above…"
-            rows={14}
-            className="w-full resize-y rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 font-mono text-xs text-slate-100 placeholder-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            spellCheck={false}
-          />
-          <p className="mt-1 text-right text-[11px] text-slate-500">
-            {Math.round(new Blob([form.code]).size / 1024)} KB / 200 KB max
-          </p>
-        </div>
+        )}
 
         {/* Uploader name (optional) */}
         <div>
@@ -375,7 +578,11 @@ export default function UploadPage() {
             onChange={(e) =>
               setForm((f) => ({ ...f, description: e.target.value }))
             }
-            placeholder="Brief explanation of what this code does…"
+            placeholder={
+              uploadType === "code"
+                ? "Brief explanation of what this code does…"
+                : "Brief description of the PDF (e.g. Lab 4 Assignment Sheet & Guidelines)…"
+            }
             rows={3}
             maxLength={1000}
             className="w-full resize-y rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:border-brand-500 focus:outline-none"
@@ -391,9 +598,17 @@ export default function UploadPage() {
         <button
           type="submit"
           disabled={submitting || !isUnlocked}
-          className="w-full rounded-xl bg-brand-600 py-3 text-sm font-semibold text-white shadow-md shadow-brand-600/20 transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.99]"
+          className={`w-full rounded-xl py-3 text-sm font-semibold text-white shadow-md transition disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.99] ${
+            uploadType === "pdf"
+              ? "bg-rose-600 shadow-rose-600/20 hover:bg-rose-500"
+              : "bg-brand-600 shadow-brand-600/20 hover:bg-brand-500"
+          }`}
         >
-          {submitting ? "Uploading…" : "Upload Snippet"}
+          {submitting
+            ? "Uploading…"
+            : uploadType === "pdf"
+              ? "Upload PDF Document"
+              : "Upload Snippet"}
         </button>
       </form>
     </div>

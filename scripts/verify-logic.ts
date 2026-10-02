@@ -116,6 +116,18 @@ async function runTests() {
   const oversizedResult = validateLabCodeUpload("Big Code", "python", oversizedCode);
   assert(oversizedResult.valid === false && (oversizedResult.error || "").includes("200KB"), "Payload exceeding 200KB rejected");
 
+  // 7. Validation: PDF Document Upload & 5MB limit
+  console.log("\n--- Test Group: PDF Document Upload Validation ---");
+  const { validatePdfUpload, MAX_PDF_BYTES } = await import("../lib/validation");
+  const dummyPdfData = "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrCg==";
+  assert(validatePdfUpload("Lab 3 Manual", dummyPdfData).valid === true, "Valid PDF data URI passes");
+  assert(validatePdfUpload("", dummyPdfData).valid === false, "Empty PDF title rejected");
+  assert(validatePdfUpload("Doc", "").valid === false, "Empty PDF payload rejected");
+  assert(validatePdfUpload("Doc", "data:image/png;base64,iVBORw0KGgo=").valid === false, "Non-PDF file rejected");
+
+  const oversizedPdfData = "data:application/pdf;base64," + "A".repeat(Math.ceil((MAX_PDF_BYTES + 1000) * 4 / 3));
+  assert(validatePdfUpload("Huge PDF", oversizedPdfData).valid === false, "PDF exceeding 5MB rejected");
+
   console.log("\n=========================================");
   console.log(`Results: ${passed} Passed, ${failed} Failed`);
   console.log("=========================================\n");

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 
 export const MAX_CODE_BYTES = 204800; // 200 KB
+export const MAX_PDF_BYTES = 5242880; // 5 MB
 export const MAX_TITLE_LENGTH = 120;
 export const MAX_GROUP_NAME_LENGTH = 80;
 export const MIN_KEY_LENGTH = 6;
@@ -122,6 +123,93 @@ export function validateLabCodeUpload(
       title: cleanTitle,
       language: cleanLanguage,
       code,
+      uploaderName: cleanUploader,
+      description: cleanDescription,
+    },
+  };
+}
+
+/**
+ * Validate PDF document upload payload.
+ */
+export function validatePdfUpload(
+  title: unknown,
+  fileData: unknown,
+  fileName?: unknown,
+  fileSize?: unknown,
+  uploaderName?: unknown,
+  description?: unknown
+): {
+  valid: boolean;
+  error?: string;
+  data?: {
+    title: string;
+    fileData: string;
+    fileName: string;
+    fileSize: number;
+    uploaderName: string;
+    description: string;
+  };
+} {
+  if (typeof title !== "string" || !title.trim()) {
+    return { valid: false, error: "Document title is required" };
+  }
+  const cleanTitle = title.trim();
+  if (cleanTitle.length > MAX_TITLE_LENGTH) {
+    return { valid: false, error: `Title cannot exceed ${MAX_TITLE_LENGTH} characters` };
+  }
+
+  if (typeof fileData !== "string" || !fileData.trim()) {
+    return { valid: false, error: "PDF file content is required" };
+  }
+
+  // Verify Base64 PDF header or data URI
+  const isPdf =
+    fileData.startsWith("data:application/pdf;base64,") ||
+    fileData.startsWith("JVBERi0") || // %PDF- header in Base64
+    fileData.includes(";base64,JVBERi0");
+
+  if (!isPdf) {
+    return { valid: false, error: "Invalid file format. Please upload a valid PDF document." };
+  }
+
+  // Calculate approximate binary size from Base64
+  const base64Content = fileData.includes(";base64,")
+    ? fileData.split(";base64,")[1]
+    : fileData;
+  const approxBytes = Math.round((base64Content.length * 3) / 4);
+
+  if (approxBytes > MAX_PDF_BYTES) {
+    return {
+      valid: false,
+      error: `PDF file size exceeds the 5MB limit (current size: ${(approxBytes / (1024 * 1024)).toFixed(1)}MB)`,
+    };
+  }
+
+  const cleanFileName =
+    typeof fileName === "string" && fileName.trim()
+      ? fileName.trim().slice(0, 100)
+      : `${cleanTitle.toLowerCase().replace(/\s+/g, "_")}.pdf`;
+
+  const cleanFileSize = typeof fileSize === "number" && fileSize > 0 ? fileSize : approxBytes;
+
+  const cleanUploader =
+    typeof uploaderName === "string" && uploaderName.trim()
+      ? uploaderName.trim().slice(0, 50)
+      : "Anonymous";
+
+  const cleanDescription =
+    typeof description === "string" && description.trim()
+      ? description.trim().slice(0, 1000)
+      : "";
+
+  return {
+    valid: true,
+    data: {
+      title: cleanTitle,
+      fileData,
+      fileName: cleanFileName,
+      fileSize: cleanFileSize,
       uploaderName: cleanUploader,
       description: cleanDescription,
     },

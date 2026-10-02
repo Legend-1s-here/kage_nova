@@ -23,7 +23,11 @@ interface LabCode {
   _id: string;
   title: string;
   language: string;
-  code: string;
+  type?: "code" | "pdf";
+  code?: string;
+  fileData?: string;
+  fileName?: string;
+  fileSize?: number;
   uploaderName: string;
   description: string;
   createdAt: string;
@@ -38,7 +42,7 @@ interface GroupInfo {
 }
 
 const LANGUAGES = [
-  "All", "C", "C++", "Python", "Java", "JavaScript",
+  "All", "PDF", "C", "C++", "Python", "Java", "JavaScript",
   "TypeScript", "SQL", "HTML", "CSS", "Go", "Rust", "PHP", "Bash",
 ];
 
