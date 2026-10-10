@@ -85,6 +85,57 @@ export function validateGroupCreation(
 }
 
 /**
+ * Validate subgroup creation parameters and derive its slug.
+ * Slug format: `parentSlug--childSlug`  (double-hyphen separator)
+ */
+export function validateSubgroupCreation(
+  name: unknown,
+  key: unknown,
+  parentSlug: string
+): {
+  valid: boolean;
+  error?: string;
+  cleanName: string;
+  cleanKey: string;
+  childSlug: string;
+} {
+  if (typeof name !== "string" || !name.trim()) {
+    return { valid: false, error: "Subgroup name is required", cleanName: "", cleanKey: "", childSlug: "" };
+  }
+
+  const cleanName = name.trim();
+  if (cleanName.length < 2 || cleanName.length > MAX_GROUP_NAME_LENGTH) {
+    return {
+      valid: false,
+      error: `Subgroup name must be between 2 and ${MAX_GROUP_NAME_LENGTH} characters`,
+      cleanName,
+      cleanKey: "",
+      childSlug: "",
+    };
+  }
+
+  if (typeof key !== "string" || !key) {
+    return { valid: false, error: "Access key password is required", cleanName, cleanKey: "", childSlug: "" };
+  }
+
+  const cleanKey = key.trim();
+  if (cleanKey.length < MIN_KEY_LENGTH) {
+    return {
+      valid: false,
+      error: `Access key password must be at least ${MIN_KEY_LENGTH} characters long`,
+      cleanName,
+      cleanKey,
+      childSlug: "",
+    };
+  }
+
+  const childRaw = slugify(cleanName) || "subgroup";
+  const childSlug = `${parentSlug}--${childRaw}`;
+
+  return { valid: true, cleanName, cleanKey, childSlug };
+}
+
+/**
  * Validate lab code snippet upload payload.
  */
 export function validateLabCodeUpload(

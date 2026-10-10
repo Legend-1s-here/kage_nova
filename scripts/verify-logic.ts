@@ -135,6 +135,22 @@ async function runTests() {
   assert(sanitizeTagColor("invalid-color", "rose") === "rose", "Falls back to default rose on invalid color");
   assert(sanitizeTagColor(undefined, "indigo") === "indigo", "Falls back to default indigo on undefined");
 
+  // 9. Subgroup Slug Generation
+  console.log("\n--- Test Group: Subgroup Slug Generation ---");
+  const { validateSubgroupCreation } = await import("../lib/validation");
+  const sgSlug = validateSubgroupCreation("Week 3", "securekey", "cs101").childSlug;
+  assert(sgSlug === "cs101--week-3", "Slug uses double-hyphen separator");
+  assert(sgSlug.startsWith("cs101--"), "Slug prefixed with parent slug");
+  assert(!sgSlug.includes(" "), "Slug contains no spaces");
+
+  // 10. Subgroup Creation Validation (happy & sad paths)
+  console.log("\n--- Test Group: Subgroup Creation Validation ---");
+  assert(validateSubgroupCreation("Week 3", "securekey", "cs101").valid === true, "Valid subgroup creation passes");
+  assert(validateSubgroupCreation("", "securekey", "cs101").valid === false, "Empty subgroup name rejected");
+  assert(validateSubgroupCreation("W", "securekey", "cs101").valid === false, "One-char subgroup name rejected");
+  assert(validateSubgroupCreation("Week 3", "123", "cs101").valid === false, "Key under 6 chars rejected for subgroup");
+  assert(validateSubgroupCreation("A".repeat(81), "securekey", "cs101").valid === false, "Subgroup name over 80 chars rejected");
+
   console.log("\n=========================================");
   console.log(`Results: ${passed} Passed, ${failed} Failed`);
   console.log("=========================================\n");

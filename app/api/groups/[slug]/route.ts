@@ -56,12 +56,22 @@ export async function DELETE(
     // Cascading delete of all code snippets belonging to this group
     const deletedCodes = await LabCode.deleteMany({ groupId: group._id });
 
+    // Also cascade-delete all subgroups and THEIR codes
+    const subgroups = await Group.find({ parentId: group._id }).select("_id").lean();
+    let deletedSubCount = 0;
+    if (subgroups.length > 0) {
+      const subIds = subgroups.map((sg) => sg._id);
+      await LabCode.deleteMany({ groupId: { $in: subIds } });
+      const subDel = await Group.deleteMany({ parentId: group._id });
+      deletedSubCount = subDel.deletedCount;
+    }
+
     // Delete the group itself
     await Group.deleteOne({ _id: group._id });
 
     const response = NextResponse.json({
       success: true,
-      message: `Group "${group.name}" and ${deletedCodes.deletedCount} snippet(s) have been deleted.`,
+      message: `Group "${group.name}" and ${deletedCodes.deletedCount} snippet(s)${deletedSubCount > 0 ? ` and ${deletedSubCount} subgroup(s)` : ""} have been deleted.`,
     });
 
     // Clear session cookie for this group

@@ -6,7 +6,9 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Code2,
+  FolderOpen,
   Globe,
+  Layers,
   Lock,
   PlusCircle,
   Search,
@@ -42,6 +44,14 @@ interface GroupInfo {
   createdAt: string;
 }
 
+interface Subgroup {
+  name: string;
+  slug: string;
+  isPublic: boolean;
+  codeCount: number;
+  createdAt: string;
+}
+
 const LANGUAGES = [
   "All", "PDF", "C", "C++", "Python", "Java", "JavaScript",
   "TypeScript", "SQL", "HTML", "CSS", "Go", "Rust", "PHP", "Bash",
@@ -64,6 +74,8 @@ export default function GroupDashboard() {
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [subgroups, setSubgroups] = useState<Subgroup[]>([]);
+  const [subgroupsLoading, setSubgroupsLoading] = useState(false);
 
   // Fetch group info + codes + session state
   const fetchData = useCallback(async () => {
@@ -114,6 +126,16 @@ export default function GroupDashboard() {
 
       setGroup(codesData.group);
       setCodes(codesData.codes || []);
+
+      // Fetch subgroups
+      setSubgroupsLoading(true);
+      try {
+        const sgRes = await fetch(`/api/groups/${slug}/subgroups`);
+        const sgData = await sgRes.json();
+        if (sgData.success) setSubgroups(sgData.subgroups || []);
+      } catch { /* non-critical */ } finally {
+        setSubgroupsLoading(false);
+      }
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -251,6 +273,14 @@ export default function GroupDashboard() {
                   Upload Code
                 </Link>
 
+                <Link
+                  href={`/g/${slug}/create-subgroup`}
+                  className="flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-400 transition hover:bg-indigo-500/20"
+                >
+                  <Layers className="h-3.5 w-3.5" />
+                  Add Subgroup
+                </Link>
+
                 <button
                   onClick={() => setShowDeleteModal(true)}
                   className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
@@ -270,6 +300,59 @@ export default function GroupDashboard() {
           </div>
         )}
       </div>
+      {/* Subgroups Section */}
+      {(subgroups.length > 0 || (isUnlocked && !subgroupsLoading)) && (
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold text-slate-300">
+              <Layers className="h-4 w-4 text-indigo-400" />
+              Subgroups
+              {subgroups.length > 0 && (
+                <span className="ml-1 rounded-full bg-indigo-500/15 px-2 py-0.5 text-xs text-indigo-400">
+                  {subgroups.length}
+                </span>
+              )}
+            </h2>
+            {isUnlocked && (
+              <Link
+                href={`/g/${slug}/create-subgroup`}
+                className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300"
+              >
+                <PlusCircle className="h-3.5 w-3.5" /> New subgroup
+              </Link>
+            )}
+          </div>
+
+          {subgroupsLoading ? (
+            <p className="text-xs text-slate-500">Loading subgroups…</p>
+          ) : subgroups.length === 0 ? (
+            <p className="text-xs text-slate-500 italic">No subgroups yet. Add one with the button above.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+              {subgroups.map((sg) => (
+                <Link
+                  key={sg.slug}
+                  href={`/g/${sg.slug}`}
+                  className="group flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 transition hover:border-indigo-500/50 hover:bg-slate-800"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+                    <FolderOpen className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-slate-200 group-hover:text-white">
+                      {sg.name}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {sg.codeCount} snippet{sg.codeCount !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                  <Lock className="h-3.5 w-3.5 shrink-0 text-slate-600" />
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Search + Language Filter */}
       <div className="mb-5 flex flex-wrap items-center gap-3">

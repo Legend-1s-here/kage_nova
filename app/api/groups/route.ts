@@ -7,7 +7,7 @@ import User from "@/models/User";
 import { hashKey, isModerator } from "@/lib/auth";
 import { getCreatorSession } from "@/lib/creator-auth";
 import { checkInappropriateContent } from "@/lib/content-filter";
-import { slugify, validateGroupCreation } from "@/lib/validation";
+import { slugify, validateGroupCreation, validateSubgroupCreation } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -62,82 +62,133 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/groups - Create a new group (Requires Creator Authentication & Content Safety)
+// POST /api/groups - Create a new group or subgroup
 export async function POST(req: NextRequest) {
   try {
-    // 1. Check Creator Authentication (Google Session or Master Moderator)
+    await connectToDatabase();
+
+    const body = await req.json();
+    const parentSlug: string | undefined =
+      typeof body.parentSlug === "string" && body.parentSlug.trim()
+        ? body.parentSlug.trim().toLowerCase()
+        : undefined;
+
+    // ── SUBGROUP BRANCH ──────────────────────────────────────────────────────
+    // Anyone who has the parent unlocked (session cookie) OR a Mod can create
+    // a subgroup. No Google login required for subgroups.
+    if (parentSlug) {
+      const { hasValidGroupSession, isModerator: isModFn } = await import("@/lib/auth");
+      const isAllowed = hasValidGroupSession(req, parentSlug) || isModFn(req);
+      if (!isAllowed) {
+        return NextResponse.json(
+          { success: false, error: "Unlock the parent group before adding a subgroup.", requiresUnlock: true },
+          { status: 401 }
+        );
+      }
+
+      // Resolve parent
+      const parent = await Group.findOne({ slug: parentSlug }).lean();
+      if (!parent) {
+        return NextResponse.json({ success: false, error: "Parent group not found" }, { status: 404 });
+      }
+
+      // Reject nesting beyond 1 level
+      if (parent.parentId) {
+        return NextResponse.json(
+          { success: false, error: "Sub-subgroups are not supported. You can only nest one level deep." },
+          { status: 400 }
+        );
+      }
+
+      const subValidation = validateSubgroupCreation(body.name, body.key, parentSlug);
+      if (!subValidation.valid) {
+        return NextResponse.json({ success: false, error: subValidation.error }, { status: 400 });
+      }
+
+      const { cleanName, cleanKey, childSlug } = subValidation;
+
+      // Profanity check
+      const moderation = checkInappropriateContent(cleanName);
+      if (!moderation.isClean) {
+        return NextResponse.json({ success: false, error: moderation.reason }, { status: 400 });
+      }
+
+      // Slug uniqueness — append suffix if collision
+      let finalSlug = childSlug;
+      let counter = 1;
+      while (await Group.exists({ slug: finalSlug })) {
+        const suffix = Math.floor(100 + Math.random() * 900);
+        finalSlug = `${childSlug}-${suffix}`;
+        counter++;
+        if (counter > 10) { finalSlug = `${childSlug}-${Date.now().toString(36)}`; break; }
+      }
+
+      const keyHash = await hashKey(cleanKey);
+      const newSub = await Group.create({
+        name: cleanName,
+        slug: finalSlug,
+        keyHash,
+        isPublic: parent.isPublic, // inherit parent visibility
+        parentId: parent._id,
+        creatorEmail: "",
+        creatorName: "",
+        creatorId: null,
+      });
+
+      return NextResponse.json(
+        { success: true, group: { name: newSub.name, slug: newSub.slug, isPublic: newSub.isPublic, createdAt: newSub.createdAt } },
+        { status: 201 }
+      );
+    }
+
+    // ── TOP-LEVEL GROUP BRANCH ───────────────────────────────────────────────
+    // Requires Google creator session OR Mod session.
     const creator = getCreatorSession(req);
     const isMod = isModerator(req);
 
     if (!creator && !isMod) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Please sign in with Google before creating a group.",
-          requiresAuth: true,
-        },
+        { success: false, error: "Please sign in with Google before creating a group.", requiresAuth: true },
         { status: 401 }
       );
     }
-
-    await connectToDatabase();
 
     // Check if creator account is banned
     if (creator) {
       const dbUser = await User.findById(creator.userId);
       if (dbUser && dbUser.isBanned) {
         return NextResponse.json(
-          {
-            success: false,
-            error: "Your account has been suspended from creating groups due to community guideline violations.",
-          },
+          { success: false, error: "Your account has been suspended from creating groups due to community guideline violations." },
           { status: 403 }
         );
       }
     }
 
-    const body = await req.json();
     const { valid, error, cleanName, cleanKey, isPublicBool } = validateGroupCreation(
       body.name,
       body.key,
       body.isPublic
     );
-
     if (!valid) {
       return NextResponse.json({ success: false, error }, { status: 400 });
     }
 
-    // 2. Automated Content Moderation / Profanity Check
     const moderation = checkInappropriateContent(cleanName);
     if (!moderation.isClean) {
-      return NextResponse.json(
-        { success: false, error: moderation.reason },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: moderation.reason }, { status: 400 });
     }
 
-    // Generate base slug
-    let baseSlug = slugify(cleanName);
-    if (!baseSlug) {
-      baseSlug = "group";
-    }
-
-    // Check slug collision, append random digits if slug already exists
+    let baseSlug = slugify(cleanName) || "group";
     let finalSlug = baseSlug;
     let counter = 1;
     while (await Group.exists({ slug: finalSlug })) {
       const randomSuffix = Math.floor(100 + Math.random() * 900);
       finalSlug = `${baseSlug}-${randomSuffix}`;
       counter++;
-      if (counter > 10) {
-        finalSlug = `${baseSlug}-${Date.now().toString(36)}`;
-        break;
-      }
+      if (counter > 10) { finalSlug = `${baseSlug}-${Date.now().toString(36)}`; break; }
     }
 
-    // Hash group access key with bcrypt
     const keyHash = await hashKey(cleanKey);
-
     const newGroup = await Group.create({
       name: cleanName,
       slug: finalSlug,
@@ -149,24 +200,12 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(
-      {
-        success: true,
-        group: {
-          name: newGroup.name,
-          slug: newGroup.slug,
-          isPublic: newGroup.isPublic,
-          createdAt: newGroup.createdAt,
-        },
-      },
+      { success: true, group: { name: newGroup.name, slug: newGroup.slug, isPublic: newGroup.isPublic, createdAt: newGroup.createdAt } },
       { status: 201 }
     );
   } catch (error: unknown) {
     console.error("Error creating group:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to create group";
-    return NextResponse.json(
-      { success: false, error: message },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : "Failed to create group";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
