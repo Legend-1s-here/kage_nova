@@ -489,6 +489,7 @@ export default function GroupDashboard() {
                 isUnlocked={isUnlocked}
                 groupSlug={slug}
                 parentDepth={parentDepth}
+                subgroups={subgroups}
                 onDelete={handleCodeDeleted}
                 onUnlockRequired={() => setShowUnlock(true)}
               />
