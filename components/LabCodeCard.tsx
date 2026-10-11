@@ -15,8 +15,6 @@ import {
   User,
   Clock,
   ExternalLink,
-  FolderOpen,
-  PlusCircle,
 } from "lucide-react";
 
 interface LabCodeCardProps {
@@ -36,8 +34,6 @@ interface LabCodeCardProps {
   };
   isUnlocked: boolean;
   groupSlug?: string;
-  parentDepth?: number;
-  subgroups?: { name: string; slug: string; codeCount: number }[];
   onDelete?: (id: string) => void;
   onUnlockRequired?: () => void;
 }
@@ -272,8 +268,6 @@ export default function LabCodeCard({
   code,
   isUnlocked,
   groupSlug,
-  parentDepth = 0,
-  subgroups = [],
   onDelete,
   onUnlockRequired,
 }: LabCodeCardProps) {
@@ -532,76 +526,6 @@ export default function LabCodeCard({
                 </SyntaxHighlighter>
               </div>
             </>
-          )}
-
-          {/* Inline Sub-subgroups Panel (When expanded inside a subgroup) */}
-          {parentDepth < 2 && currentSlug && (
-            <div className="border-t border-slate-800/80 bg-slate-950/60 p-3 sm:p-4">
-              <div className="mb-2.5 flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
-                  <FolderOpen className="h-3.5 w-3.5 text-indigo-400" />
-                  {parentDepth === 1 ? "Sub-subgroups" : "Subgroups"}
-                  {subgroups.length > 0 && (
-                    <span className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-[10px] text-indigo-400 font-bold">
-                      {subgroups.length}
-                    </span>
-                  )}
-                </span>
-
-                {isUnlocked ? (
-                  <Link
-                    href={`/g/${currentSlug}/create-subgroup`}
-                    className="flex items-center gap-1 text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition"
-                  >
-                    <PlusCircle className="h-3 w-3" />
-                    + New {parentDepth === 1 ? "sub-subgroup" : "subgroup"}
-                  </Link>
-                ) : onUnlockRequired ? (
-                  <button
-                    onClick={onUnlockRequired}
-                    className="flex items-center gap-1 text-[11px] font-medium text-amber-400/80 hover:text-amber-300 transition"
-                  >
-                    Unlock to add {parentDepth === 1 ? "sub-subgroup" : "subgroup"}
-                  </button>
-                ) : null}
-              </div>
-
-              {subgroups.length === 0 ? (
-                <div className="flex items-center justify-between rounded-lg border border-dashed border-slate-800 bg-slate-900/30 px-3 py-2 text-xs text-slate-500">
-                  <span>No {parentDepth === 1 ? "sub-subgroups" : "subgroups"} found under this group.</span>
-                  {isUnlocked && (
-                    <Link
-                      href={`/g/${currentSlug}/create-subgroup`}
-                      className="inline-flex items-center gap-1 rounded bg-indigo-600/20 px-2 py-0.5 text-[11px] font-medium text-indigo-300 hover:bg-indigo-600/30"
-                    >
-                      <PlusCircle className="h-3 w-3" /> Add one
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-                  {subgroups.map((sg) => (
-                    <Link
-                      key={sg.slug}
-                      href={`/g/${sg.slug}`}
-                      className="group flex items-center gap-2.5 rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-2 transition hover:border-indigo-500/40 hover:bg-slate-800"
-                    >
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-indigo-500/10 text-indigo-400">
-                        <FolderOpen className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-medium text-slate-200 group-hover:text-white">
-                          {sg.name}
-                        </p>
-                        <p className="text-[10px] text-slate-500">
-                          {sg.codeCount} snippet{sg.codeCount !== 1 ? "s" : ""}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
           )}
         </div>
       )}

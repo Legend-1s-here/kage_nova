@@ -313,13 +313,13 @@ export default function GroupDashboard() {
                   Upload Code
                 </Link>
 
-                {parentDepth < 2 && (
+                {parentDepth === 0 && (
                   <Link
                     href={`/g/${slug}/create-subgroup`}
                     className="flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-400 transition hover:bg-indigo-500/20"
                   >
                     <Layers className="h-3.5 w-3.5" />
-                    {parentDepth === 1 ? "Add Sub-subgroup" : "Add Subgroup"}
+                    Add Subgroup
                   </Link>
                 )}
 
@@ -342,35 +342,33 @@ export default function GroupDashboard() {
           </div>
         )}
       </div>
-      {/* Subgroups Section */}
-      {(subgroups.length > 0 || parentDepth < 2) && (
+      {/* Subgroups Section - only shown at top-level group */}
+      {parentDepth === 0 && (subgroups.length > 0 || isUnlocked) && (
         <div className="mb-6 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-semibold text-slate-300">
               <Layers className="h-4 w-4 text-indigo-400" />
-              {parentDepth === 1 ? "Sub-subgroups" : "Subgroups"}
+              Subgroups
               {subgroups.length > 0 && (
                 <span className="ml-1 rounded-full bg-indigo-500/15 px-2 py-0.5 text-xs text-indigo-400">
                   {subgroups.length}
                 </span>
               )}
             </h2>
-            {parentDepth < 2 && (
-              isUnlocked ? (
-                <Link
-                  href={`/g/${slug}/create-subgroup`}
-                  className="flex items-center gap-1 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition"
-                >
-                  <PlusCircle className="h-3.5 w-3.5" /> New {parentDepth === 1 ? "sub-subgroup" : "subgroup"}
-                </Link>
-              ) : (
-                <button
-                  onClick={() => setShowUnlock(true)}
-                  className="flex items-center gap-1 text-xs text-amber-400/80 hover:text-amber-300 transition"
-                >
-                  <Lock className="h-3 w-3" /> Unlock to add {parentDepth === 1 ? "sub-subgroup" : "subgroup"}
-                </button>
-              )
+            {isUnlocked ? (
+              <Link
+                href={`/g/${slug}/create-subgroup`}
+                className="flex items-center gap-1 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition"
+              >
+                <PlusCircle className="h-3.5 w-3.5" /> New subgroup
+              </Link>
+            ) : (
+              <button
+                onClick={() => setShowUnlock(true)}
+                className="flex items-center gap-1 text-xs text-amber-400/80 hover:text-amber-300 transition"
+              >
+                <Lock className="h-3 w-3" /> Unlock to add subgroup
+              </button>
             )}
           </div>
 
@@ -378,13 +376,13 @@ export default function GroupDashboard() {
             <p className="text-xs text-slate-500">Loading…</p>
           ) : subgroups.length === 0 ? (
             <div className="flex items-center justify-between py-2 text-xs text-slate-500">
-              <span>No {parentDepth === 1 ? "sub-subgroups" : "subgroups"} yet.</span>
-              {isUnlocked && parentDepth < 2 && (
+              <span>No subgroups yet.</span>
+              {isUnlocked && (
                 <Link
                   href={`/g/${slug}/create-subgroup`}
                   className="inline-flex items-center gap-1 rounded bg-indigo-600/20 px-2.5 py-1 text-xs font-medium text-indigo-300 hover:bg-indigo-600/30"
                 >
-                  <PlusCircle className="h-3.5 w-3.5" /> Create first {parentDepth === 1 ? "sub-subgroup" : "subgroup"}
+                  <PlusCircle className="h-3.5 w-3.5" /> Create first subgroup
                 </Link>
               )}
             </div>
@@ -488,8 +486,6 @@ export default function GroupDashboard() {
                 code={code}
                 isUnlocked={isUnlocked}
                 groupSlug={slug}
-                parentDepth={parentDepth}
-                subgroups={subgroups}
                 onDelete={handleCodeDeleted}
                 onUnlockRequired={() => setShowUnlock(true)}
               />
