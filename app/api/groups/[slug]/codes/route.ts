@@ -26,7 +26,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     await connectToDatabase();
 
-    const group = await Group.findOne({ slug }).select("_id name slug isPublic createdAt");
+    const group = await Group.findOne({ slug }).select("_id name slug isPublic createdAt parentId");
     if (!group) {
       return NextResponse.json(
         { success: false, error: "Group not found" },
@@ -84,6 +84,24 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       createdAt: c.createdAt,
     }));
 
+    let parentGroup: { name: string; slug: string; parentSlug?: string; parentName?: string } | null = null;
+    if (group.parentId) {
+      const p = await Group.findById(group.parentId).select("name slug parentId").lean();
+      if (p) {
+        let grandParent: { name: string; slug: string } | null = null;
+        if (p.parentId) {
+          const gp = await Group.findById(p.parentId).select("name slug").lean();
+          if (gp) grandParent = { name: gp.name, slug: gp.slug };
+        }
+        parentGroup = {
+          name: p.name,
+          slug: p.slug,
+          parentSlug: grandParent?.slug,
+          parentName: grandParent?.name,
+        };
+      }
+    }
+
     return NextResponse.json({
       success: true,
       group: {
@@ -92,6 +110,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         slug: group.slug,
         isPublic: group.isPublic,
         createdAt: group.createdAt,
+        parent: parentGroup,
       },
       codes: formattedCodes,
       count: formattedCodes.length,

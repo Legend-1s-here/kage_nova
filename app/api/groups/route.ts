@@ -26,6 +26,8 @@ export async function GET(req: NextRequest) {
         { name: { $regex: query, $options: "i" } },
         { slug: { $regex: query, $options: "i" } },
       ];
+    } else {
+      filter.parentId = null;
     }
 
     const groups = await Group.find(filter)

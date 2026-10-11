@@ -29,7 +29,7 @@ async function getPublicGroups(): Promise<PublicGroup[]> {
   try {
     await connectToDatabase();
 
-    const groups = await Group.find({ isPublic: true })
+    const groups = await Group.find({ isPublic: true, parentId: null })
       .select("name slug isPublic createdAt")
       .sort({ createdAt: -1 })
       .limit(50)

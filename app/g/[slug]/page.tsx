@@ -42,6 +42,12 @@ interface GroupInfo {
   slug: string;
   isPublic: boolean;
   createdAt: string;
+  parent?: {
+    name: string;
+    slug: string;
+    parentSlug?: string;
+    parentName?: string;
+  } | null;
 }
 
 interface Subgroup {
@@ -215,14 +221,43 @@ export default function GroupDashboard() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      {/* Header */}
+      {/* Breadcrumbs Header */}
       <div className="mb-7">
-        <Link
-          href="/"
-          className="mb-3 inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" /> All Groups
-        </Link>
+        <div className="mb-3 flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1 hover:text-white transition"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> All Groups
+          </Link>
+
+          {group?.parent?.parentSlug && (
+            <>
+              <span className="text-slate-600">/</span>
+              <Link
+                href={`/g/${group.parent.parentSlug}`}
+                className="hover:text-indigo-400 transition"
+              >
+                {group.parent.parentName || group.parent.parentSlug}
+              </Link>
+            </>
+          )}
+
+          {group?.parent && (
+            <>
+              <span className="text-slate-600">/</span>
+              <Link
+                href={`/g/${group.parent.slug}`}
+                className="hover:text-indigo-400 transition"
+              >
+                {group.parent.name}
+              </Link>
+            </>
+          )}
+
+          <span className="text-slate-600">/</span>
+          <span className="text-slate-200 font-medium">{group?.name}</span>
+        </div>
 
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
