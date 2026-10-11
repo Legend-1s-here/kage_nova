@@ -143,6 +143,9 @@ async function runTests() {
   assert(sgSlug.startsWith("cs101--"), "Slug prefixed with parent slug");
   assert(!sgSlug.includes(" "), "Slug contains no spaces");
 
+  const subSubSlug = validateSubgroupCreation("Day 1", "securekey", "cs101--week-3").childSlug;
+  assert(subSubSlug === "cs101--week-3--day-1", "Sub-subgroup slug nests properly");
+
   // 10. Subgroup Creation Validation (happy & sad paths)
   console.log("\n--- Test Group: Subgroup Creation Validation ---");
   assert(validateSubgroupCreation("Week 3", "securekey", "cs101").valid === true, "Valid subgroup creation passes");

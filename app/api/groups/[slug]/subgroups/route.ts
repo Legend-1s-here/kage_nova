@@ -26,6 +26,13 @@ export async function GET(
 
     const isUnlocked = hasValidGroupSession(req, slug) || isModerator(req);
 
+    // Compute the depth of the current group (0 = top-level, 1 = subgroup, 2 = sub-subgroup)
+    let parentDepth = 0;
+    if (parent.parentId) {
+      const grandparent = await Group.findById(parent.parentId).select("parentId").lean();
+      parentDepth = grandparent?.parentId ? 2 : 1;
+    }
+
     // Fetch all subgroups
     const subgroups = await Group.find({ parentId: parent._id })
       .select("name slug isPublic createdAt")
@@ -48,7 +55,7 @@ export async function GET(
       codeCount: countMap.get(sg._id.toString()) || 0,
     }));
 
-    return NextResponse.json({ success: true, subgroups: data, parentUnlocked: isUnlocked });
+    return NextResponse.json({ success: true, subgroups: data, parentUnlocked: isUnlocked, parentDepth });
   } catch (error) {
     console.error("Error fetching subgroups:", error);
     return NextResponse.json(

@@ -76,6 +76,7 @@ export default function GroupDashboard() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [subgroups, setSubgroups] = useState<Subgroup[]>([]);
   const [subgroupsLoading, setSubgroupsLoading] = useState(false);
+  const [parentDepth, setParentDepth] = useState(0); // 0=top-level, 1=subgroup, 2=sub-subgroup
 
   // Fetch group info + codes + session state
   const fetchData = useCallback(async () => {
@@ -132,7 +133,10 @@ export default function GroupDashboard() {
       try {
         const sgRes = await fetch(`/api/groups/${slug}/subgroups`);
         const sgData = await sgRes.json();
-        if (sgData.success) setSubgroups(sgData.subgroups || []);
+        if (sgData.success) {
+          setSubgroups(sgData.subgroups || []);
+          setParentDepth(sgData.parentDepth ?? 0);
+        }
       } catch { /* non-critical */ } finally {
         setSubgroupsLoading(false);
       }
@@ -273,13 +277,15 @@ export default function GroupDashboard() {
                   Upload Code
                 </Link>
 
-                <Link
-                  href={`/g/${slug}/create-subgroup`}
-                  className="flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-400 transition hover:bg-indigo-500/20"
-                >
-                  <Layers className="h-3.5 w-3.5" />
-                  Add Subgroup
-                </Link>
+                {parentDepth < 2 && (
+                  <Link
+                    href={`/g/${slug}/create-subgroup`}
+                    className="flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-400 transition hover:bg-indigo-500/20"
+                  >
+                    <Layers className="h-3.5 w-3.5" />
+                    {parentDepth === 1 ? "Add Sub-subgroup" : "Add Subgroup"}
+                  </Link>
+                )}
 
                 <button
                   onClick={() => setShowDeleteModal(true)}
@@ -301,24 +307,24 @@ export default function GroupDashboard() {
         )}
       </div>
       {/* Subgroups Section */}
-      {(subgroups.length > 0 || (isUnlocked && !subgroupsLoading)) && (
+      {(subgroups.length > 0 || (isUnlocked && parentDepth < 2 && !subgroupsLoading)) && (
         <div className="mb-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-semibold text-slate-300">
               <Layers className="h-4 w-4 text-indigo-400" />
-              Subgroups
+              {parentDepth === 1 ? "Sub-subgroups" : "Subgroups"}
               {subgroups.length > 0 && (
                 <span className="ml-1 rounded-full bg-indigo-500/15 px-2 py-0.5 text-xs text-indigo-400">
                   {subgroups.length}
                 </span>
               )}
             </h2>
-            {isUnlocked && (
+            {isUnlocked && parentDepth < 2 && (
               <Link
                 href={`/g/${slug}/create-subgroup`}
                 className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300"
               >
-                <PlusCircle className="h-3.5 w-3.5" /> New subgroup
+                <PlusCircle className="h-3.5 w-3.5" /> New {parentDepth === 1 ? "sub-subgroup" : "subgroup"}
               </Link>
             )}
           </div>

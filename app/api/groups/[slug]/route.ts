@@ -56,13 +56,17 @@ export async function DELETE(
     // Cascading delete of all code snippets belonging to this group
     const deletedCodes = await LabCode.deleteMany({ groupId: group._id });
 
-    // Also cascade-delete all subgroups and THEIR codes
-    const subgroups = await Group.find({ parentId: group._id }).select("_id").lean();
+    // Also cascade-delete all child and grandchild subgroups and THEIR codes
+    const level1Subgroups = await Group.find({ parentId: group._id }).select("_id").lean();
     let deletedSubCount = 0;
-    if (subgroups.length > 0) {
-      const subIds = subgroups.map((sg) => sg._id);
-      await LabCode.deleteMany({ groupId: { $in: subIds } });
-      const subDel = await Group.deleteMany({ parentId: group._id });
+    if (level1Subgroups.length > 0) {
+      const level1Ids = level1Subgroups.map((sg) => sg._id);
+      const level2Subgroups = await Group.find({ parentId: { $in: level1Ids } }).select("_id").lean();
+      const level2Ids = level2Subgroups.map((sg) => sg._id);
+
+      const allDescendantIds = [...level1Ids, ...level2Ids];
+      await LabCode.deleteMany({ groupId: { $in: allDescendantIds } });
+      const subDel = await Group.deleteMany({ _id: { $in: allDescendantIds } });
       deletedSubCount = subDel.deletedCount;
     }
 

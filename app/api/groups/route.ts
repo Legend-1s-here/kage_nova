@@ -92,12 +92,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: "Parent group not found" }, { status: 404 });
       }
 
-      // Reject nesting beyond 1 level
+      // Reject nesting beyond 2 levels (group → subgroup → sub-subgroup is the max)
       if (parent.parentId) {
-        return NextResponse.json(
-          { success: false, error: "Sub-subgroups are not supported. You can only nest one level deep." },
-          { status: 400 }
-        );
+        const grandparent = await Group.findById(parent.parentId).select("parentId").lean();
+        if (grandparent?.parentId) {
+          return NextResponse.json(
+            { success: false, error: "Maximum nesting depth reached. Only 2 levels of subgroups are supported." },
+            { status: 400 }
+          );
+        }
       }
 
       const subValidation = validateSubgroupCreation(body.name, body.key, parentSlug);
