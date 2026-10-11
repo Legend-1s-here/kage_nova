@@ -154,6 +154,7 @@ export default function GroupDashboard() {
   const handleUnlocked = () => {
     setIsUnlocked(true);
     setShowUnlock(false);
+    fetchData();
   };
 
   const handleCodeDeleted = (id: string) => {
@@ -307,8 +308,8 @@ export default function GroupDashboard() {
         )}
       </div>
       {/* Subgroups Section */}
-      {(subgroups.length > 0 || (isUnlocked && parentDepth < 2 && !subgroupsLoading)) && (
-        <div className="mb-6">
+      {(subgroups.length > 0 || parentDepth < 2) && (
+        <div className="mb-6 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-semibold text-slate-300">
               <Layers className="h-4 w-4 text-indigo-400" />
@@ -319,20 +320,39 @@ export default function GroupDashboard() {
                 </span>
               )}
             </h2>
-            {isUnlocked && parentDepth < 2 && (
-              <Link
-                href={`/g/${slug}/create-subgroup`}
-                className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300"
-              >
-                <PlusCircle className="h-3.5 w-3.5" /> New {parentDepth === 1 ? "sub-subgroup" : "subgroup"}
-              </Link>
+            {parentDepth < 2 && (
+              isUnlocked ? (
+                <Link
+                  href={`/g/${slug}/create-subgroup`}
+                  className="flex items-center gap-1 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition"
+                >
+                  <PlusCircle className="h-3.5 w-3.5" /> New {parentDepth === 1 ? "sub-subgroup" : "subgroup"}
+                </Link>
+              ) : (
+                <button
+                  onClick={() => setShowUnlock(true)}
+                  className="flex items-center gap-1 text-xs text-amber-400/80 hover:text-amber-300 transition"
+                >
+                  <Lock className="h-3 w-3" /> Unlock to add {parentDepth === 1 ? "sub-subgroup" : "subgroup"}
+                </button>
+              )
             )}
           </div>
 
           {subgroupsLoading ? (
-            <p className="text-xs text-slate-500">Loading subgroups…</p>
+            <p className="text-xs text-slate-500">Loading…</p>
           ) : subgroups.length === 0 ? (
-            <p className="text-xs text-slate-500 italic">No subgroups yet. Add one with the button above.</p>
+            <div className="flex items-center justify-between py-2 text-xs text-slate-500">
+              <span>No {parentDepth === 1 ? "sub-subgroups" : "subgroups"} yet.</span>
+              {isUnlocked && parentDepth < 2 && (
+                <Link
+                  href={`/g/${slug}/create-subgroup`}
+                  className="inline-flex items-center gap-1 rounded bg-indigo-600/20 px-2.5 py-1 text-xs font-medium text-indigo-300 hover:bg-indigo-600/30"
+                >
+                  <PlusCircle className="h-3.5 w-3.5" /> Create first {parentDepth === 1 ? "sub-subgroup" : "subgroup"}
+                </Link>
+              )}
+            </div>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
               {subgroups.map((sg) => (
