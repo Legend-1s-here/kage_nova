@@ -19,7 +19,8 @@ export async function DELETE(
   try {
     await connectToDatabase();
 
-    const slug = params.slug.toLowerCase().trim();
+    const raw = params.slug || "";
+    const slug = decodeURIComponent(raw).toLowerCase().trim();
     const group = await Group.findOne({ slug });
 
     if (!group) {

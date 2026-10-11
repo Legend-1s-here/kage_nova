@@ -12,7 +12,8 @@ interface RouteParams {
 // GET /api/groups/[slug]/session - Check if user has active unlocked editing session
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
-    const slug = params.slug?.toLowerCase().trim();
+    const raw = params.slug || "";
+    const slug = decodeURIComponent(raw).toLowerCase().trim();
     if (!slug) {
       return NextResponse.json({ success: false, unlocked: false }, { status: 400 });
     }

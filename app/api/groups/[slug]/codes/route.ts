@@ -16,7 +16,8 @@ export const dynamic = "force-dynamic";
 // GET /api/groups/[slug]/codes - List snippets and documents for a group
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
-    const slug = params.slug?.toLowerCase().trim();
+    const raw = params.slug || "";
+    const slug = decodeURIComponent(raw).toLowerCase().trim();
     if (!slug) {
       return NextResponse.json(
         { success: false, error: "Group slug is required" },
@@ -127,7 +128,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 // POST /api/groups/[slug]/codes - Upload a new code snippet or PDF document (requires group key/session)
 export async function POST(req: NextRequest, { params }: RouteParams) {
   try {
-    const slug = params.slug?.toLowerCase().trim();
+    const raw = params.slug || "";
+    const slug = decodeURIComponent(raw).toLowerCase().trim();
     if (!slug) {
       return NextResponse.json(
         { success: false, error: "Group slug is required" },

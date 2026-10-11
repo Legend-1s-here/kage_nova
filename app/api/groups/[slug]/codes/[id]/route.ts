@@ -15,7 +15,8 @@ interface RouteParams {
 // PUT /api/groups/[slug]/codes/[id] - Update an existing snippet
 export async function PUT(req: NextRequest, { params }: RouteParams) {
   try {
-    const slug = params.slug?.toLowerCase().trim();
+    const raw = params.slug || "";
+    const slug = decodeURIComponent(raw).toLowerCase().trim();
     const id = params.id;
 
     if (!slug || !id) {
@@ -84,7 +85,8 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 // DELETE /api/groups/[slug]/codes/[id] - Delete a snippet
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
-    const slug = params.slug?.toLowerCase().trim();
+    const raw = params.slug || "";
+    const slug = decodeURIComponent(raw).toLowerCase().trim();
     const id = params.id;
 
     if (!slug || !id) {

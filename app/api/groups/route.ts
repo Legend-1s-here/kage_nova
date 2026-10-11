@@ -70,10 +70,12 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
 
     const body = await req.json();
-    const parentSlug: string | undefined =
-      typeof body.parentSlug === "string" && body.parentSlug.trim()
-        ? body.parentSlug.trim().toLowerCase()
-        : undefined;
+    const rawParentSlug = typeof body.parentSlug === "string" && body.parentSlug.trim()
+      ? body.parentSlug.trim()
+      : undefined;
+    const parentSlug: string | undefined = rawParentSlug
+      ? decodeURIComponent(rawParentSlug).toLowerCase().trim()
+      : undefined;
 
     // ── SUBGROUP BRANCH ──────────────────────────────────────────────────────
     // Anyone who has the parent unlocked (session cookie) OR a Mod can create

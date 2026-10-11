@@ -7,7 +7,8 @@ import { ArrowLeft, Layers, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function CreateSubgroupPage() {
   const params = useParams();
-  const parentSlug = typeof params.slug === "string" ? params.slug : "";
+  const rawSlug = typeof params.slug === "string" ? params.slug : "";
+  const parentSlug = decodeURIComponent(rawSlug).trim().toLowerCase();
   const router = useRouter();
 
   const [name, setName] = useState("");

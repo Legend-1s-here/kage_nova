@@ -21,7 +21,8 @@ interface RouteParams {
 
 export async function POST(req: NextRequest, { params }: RouteParams) {
   try {
-    const slug = params.slug?.toLowerCase().trim();
+    const raw = params.slug || "";
+    const slug = decodeURIComponent(raw).toLowerCase().trim();
     if (!slug) {
       return NextResponse.json(
         { success: false, error: "Group slug is required" },

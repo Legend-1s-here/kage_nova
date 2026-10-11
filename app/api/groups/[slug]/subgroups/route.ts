@@ -14,7 +14,8 @@ export async function GET(
   try {
     await connectToDatabase();
 
-    const slug = params.slug.toLowerCase().trim();
+    const raw = params.slug || "";
+    const slug = decodeURIComponent(raw).toLowerCase().trim();
     const parent = await Group.findOne({ slug }).lean();
 
     if (!parent) {
