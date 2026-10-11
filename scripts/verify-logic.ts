@@ -148,7 +148,8 @@ async function runTests() {
 
   // 10. Subgroup Creation Validation (happy & sad paths)
   console.log("\n--- Test Group: Subgroup Creation Validation ---");
-  assert(validateSubgroupCreation("Week 3", "securekey", "cs101").valid === true, "Valid subgroup creation passes");
+  assert(validateSubgroupCreation("Week 3", "securekey", "cs101").valid === true, "Valid subgroup creation with key passes");
+  assert(validateSubgroupCreation("Week 3", "", "cs101").valid === true, "Subgroup creation without key passes (inherits parent key)");
   assert(validateSubgroupCreation("", "securekey", "cs101").valid === false, "Empty subgroup name rejected");
   assert(validateSubgroupCreation("W", "securekey", "cs101").valid === false, "One-char subgroup name rejected");
   assert(validateSubgroupCreation("Week 3", "123", "cs101").valid === false, "Key under 6 chars rejected for subgroup");

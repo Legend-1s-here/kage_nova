@@ -114,19 +114,18 @@ export function validateSubgroupCreation(
     };
   }
 
-  if (typeof key !== "string" || !key) {
-    return { valid: false, error: "Access key password is required", cleanName, cleanKey: "", childSlug: "" };
-  }
-
-  const cleanKey = key.trim();
-  if (cleanKey.length < MIN_KEY_LENGTH) {
-    return {
-      valid: false,
-      error: `Access key password must be at least ${MIN_KEY_LENGTH} characters long`,
-      cleanName,
-      cleanKey,
-      childSlug: "",
-    };
+  let cleanKey = "";
+  if (typeof key === "string" && key.trim()) {
+    cleanKey = key.trim();
+    if (cleanKey.length < MIN_KEY_LENGTH) {
+      return {
+        valid: false,
+        error: `Access key password must be at least ${MIN_KEY_LENGTH} characters long`,
+        cleanName,
+        cleanKey: "",
+        childSlug: "",
+      };
+    }
   }
 
   const childRaw = slugify(cleanName) || "subgroup";

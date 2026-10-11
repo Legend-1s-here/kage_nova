@@ -32,14 +32,14 @@ export default function CreateSubgroupPage() {
     e.preventDefault();
     setError("");
     if (!name.trim()) { setError("Subgroup name is required."); return; }
-    if (key.length < 6) { setError("Access key must be at least 6 characters."); return; }
+    if (key.trim() && key.trim().length < 6) { setError("Access key must be at least 6 characters."); return; }
 
     setLoading(true);
     try {
       const res = await fetch("/api/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), key, parentSlug }),
+        body: JSON.stringify({ name: name.trim(), key: key.trim(), parentSlug }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -105,21 +105,20 @@ export default function CreateSubgroupPage() {
             <p className="mt-1 text-right text-xs text-slate-600">{name.length}/80</p>
           </div>
 
-          {/* Access key */}
+          {/* Access key (Optional - inherits parent key) */}
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-300">
+            <label className="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
               <span className="flex items-center gap-1">
-                <Lock className="h-3 w-3" /> Access Key
+                <Lock className="h-3 w-3" /> Access Key (Optional)
               </span>
+              <span className="text-[11px] text-slate-500">Defaults to parent key</span>
             </label>
             <div className="relative">
               <input
                 type={showKey ? "text" : "password"}
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
-                placeholder="Min. 6 characters"
-                minLength={6}
-                required
+                placeholder="Leave blank to use parent group's key"
                 className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 pr-10 text-sm text-slate-100 placeholder-slate-500 transition focus:border-indigo-500 focus:outline-none"
               />
               <button
@@ -131,7 +130,7 @@ export default function CreateSubgroupPage() {
               </button>
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              Anyone with this key can unlock and upload to the subgroup.
+              Leave empty to automatically inherit <strong>{parentName || parentSlug}</strong>'s access key.
             </p>
           </div>
 

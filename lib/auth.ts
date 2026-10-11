@@ -123,10 +123,24 @@ export function hasValidGroupSession(
   // Master Moderator bypass
   if (isModerator(req)) return true;
 
+  // 1. Direct cookie for this group
   const cookieName = getGroupCookieName(slug);
   const token = req.cookies.get(cookieName)?.value;
-  if (!token) return false;
-  return verifyGroupToken(token, slug);
+  if (token && verifyGroupToken(token, slug)) {
+    return true;
+  }
+
+  // 2. Inherit access from parent group if this is a subgroup (e.g. parent--child)
+  if (slug.includes("--")) {
+    const parentSlug = slug.split("--")[0];
+    const parentCookieName = getGroupCookieName(parentSlug);
+    const parentToken = req.cookies.get(parentCookieName)?.value;
+    if (parentToken && verifyGroupToken(parentToken, parentSlug)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**

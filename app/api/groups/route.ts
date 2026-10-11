@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
         if (counter > 10) { finalSlug = `${childSlug}-${Date.now().toString(36)}`; break; }
       }
 
-      const keyHash = await hashKey(cleanKey);
+      const keyHash = cleanKey ? await hashKey(cleanKey) : parent.keyHash;
       const newSub = await Group.create({
         name: cleanName,
         slug: finalSlug,
