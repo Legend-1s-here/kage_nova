@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import {
@@ -14,6 +15,8 @@ import {
   User,
   Clock,
   ExternalLink,
+  Layers,
+  Lock,
 } from "lucide-react";
 
 interface LabCodeCardProps {
@@ -32,7 +35,10 @@ interface LabCodeCardProps {
     createdAt: string;
   };
   isUnlocked: boolean;
+  groupSlug?: string;
+  parentDepth?: number;
   onDelete?: (id: string) => void;
+  onUnlockRequired?: () => void;
 }
 
 const COLOR_THEMES: Record<
@@ -261,7 +267,14 @@ function getLanguageLabel(lang: string): string {
   return labels[lang.toLowerCase()] || lang.toUpperCase();
 }
 
-export default function LabCodeCard({ code, isUnlocked, onDelete }: LabCodeCardProps) {
+export default function LabCodeCard({
+  code,
+  isUnlocked,
+  groupSlug,
+  parentDepth = 0,
+  onDelete,
+  onUnlockRequired,
+}: LabCodeCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -303,8 +316,9 @@ export default function LabCodeCard({ code, isUnlocked, onDelete }: LabCodeCardP
     if (!confirm(`Delete this ${isPdf ? "PDF" : "snippet"}? This cannot be undone.`)) return;
     setDeleting(true);
     try {
+      const currentSlug = groupSlug || window.location.pathname.split("/g/")[1]?.split("/")[0];
       const res = await fetch(
-        `/api/groups/${window.location.pathname.split("/g/")[1].split("/")[0]}/codes/${code._id}`,
+        `/api/groups/${currentSlug}/codes/${code._id}`,
         {
           method: "DELETE",
         }
@@ -317,6 +331,8 @@ export default function LabCodeCard({ code, isUnlocked, onDelete }: LabCodeCardP
       setDeleting(false);
     }
   };
+
+  const currentSlug = groupSlug || (typeof window !== "undefined" ? window.location.pathname.split("/g/")[1]?.split("/")[0] : "");
 
   return (
     <div
@@ -365,6 +381,32 @@ export default function LabCodeCard({ code, isUnlocked, onDelete }: LabCodeCardP
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
+          {parentDepth < 2 && currentSlug && (
+            isUnlocked ? (
+              <Link
+                href={`/g/${currentSlug}/create-subgroup`}
+                className="flex items-center gap-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1.5 text-xs font-medium text-indigo-400 transition hover:bg-indigo-500/20 hover:border-indigo-500/50"
+                title={parentDepth === 1 ? "Add Sub-subgroup" : "Add Subgroup"}
+              >
+                <Layers className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">
+                  {parentDepth === 1 ? "+ Sub-subgroup" : "+ Subgroup"}
+                </span>
+              </Link>
+            ) : onUnlockRequired ? (
+              <button
+                onClick={onUnlockRequired}
+                className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1.5 text-xs font-medium text-amber-400/80 transition hover:bg-slate-800 hover:text-amber-300"
+                title="Unlock to add group"
+              >
+                <Lock className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">
+                  {parentDepth === 1 ? "+ Sub-subgroup" : "+ Subgroup"}
+                </span>
+              </button>
+            ) : null
+          )}
+
           <button
             onClick={handleDownload}
             className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:border-slate-600 hover:text-white"

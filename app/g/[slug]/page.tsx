@@ -487,7 +487,10 @@ export default function GroupDashboard() {
                 key={code._id}
                 code={code}
                 isUnlocked={isUnlocked}
+                groupSlug={slug}
+                parentDepth={parentDepth}
                 onDelete={handleCodeDeleted}
+                onUnlockRequired={() => setShowUnlock(true)}
               />
             ))}
           </>
