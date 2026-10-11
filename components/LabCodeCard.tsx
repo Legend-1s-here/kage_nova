@@ -15,7 +15,18 @@ import {
   User,
   Clock,
   ExternalLink,
+  Plus,
+  Trash2,
+  Edit2,
+  X,
 } from "lucide-react";
+
+export interface SubCodeItem {
+  _id?: string;
+  title: string;
+  language?: string;
+  code: string;
+}
 
 interface LabCodeCardProps {
   code: {
@@ -25,6 +36,7 @@ interface LabCodeCardProps {
     type?: "code" | "pdf";
     tagColor?: string;
     code?: string;
+    subCodes?: SubCodeItem[];
     fileData?: string;
     fileName?: string;
     fileSize?: number;
@@ -275,16 +287,32 @@ export default function LabCodeCard({
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const [subCodes, setSubCodes] = useState<SubCodeItem[]>(code.subCodes || []);
+  const [activeTab, setActiveTab] = useState<number>(0); // 0 = main code, 1+ = subCodes[activeTab - 1]
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newCodeText, setNewCodeText] = useState("");
+  const [newLanguage, setNewLanguage] = useState(code.language || "cpp");
+  const [savingSubCode, setSavingSubCode] = useState(false);
+
   const isPdf = code.type === "pdf" || code.language.toLowerCase() === "pdf" || Boolean(code.fileData);
-  const syntaxLang = LANGUAGE_MAP[code.language.toLowerCase()] || "plaintext";
-  const fileExt = FILE_EXT_MAP[code.language.toLowerCase()] || "txt";
+
+  // Active code item based on tab
+  const activeItem = activeTab === 0
+    ? { title: code.title, language: code.language, code: code.code || "" }
+    : subCodes[activeTab - 1] || { title: code.title, language: code.language, code: code.code || "" };
+
+  const currentLang = activeItem.language || code.language || "plaintext";
+  const syntaxLang = LANGUAGE_MAP[currentLang.toLowerCase()] || "plaintext";
+  const fileExt = FILE_EXT_MAP[currentLang.toLowerCase()] || "txt";
 
   const colorKey = code.tagColor?.toLowerCase() || (isPdf ? "rose" : "indigo");
   const theme = COLOR_THEMES[colorKey] || (isPdf ? COLOR_THEMES.rose : COLOR_THEMES.indigo);
 
   const handleCopy = () => {
-    if (!code.code) return;
-    navigator.clipboard.writeText(code.code);
+    const textToCopy = activeItem.code || "";
+    if (!textToCopy) return;
+    navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -298,13 +326,81 @@ export default function LabCodeCard({
       a.click();
       document.body.removeChild(a);
     } else {
-      const blob = new Blob([code.code || ""], { type: "text/plain" });
+      const blob = new Blob([activeItem.code || ""], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${code.title.toLowerCase().replace(/\s+/g, "-")}.${fileExt}`;
+      const downloadName = activeTab === 0
+        ? `${code.title.toLowerCase().replace(/\s+/g, "-")}.${fileExt}`
+        : `${activeItem.title.toLowerCase().replace(/\s+/g, "-")}.${fileExt}`;
+      a.download = downloadName;
       a.click();
       URL.revokeObjectURL(url);
+    }
+  };
+
+  const currentSlug = groupSlug || (typeof window !== "undefined" ? window.location.pathname.split("/g/")[1]?.split("/")[0] : "");
+
+  const handleAddSubCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCodeText.trim()) return;
+    setSavingSubCode(true);
+    try {
+      const newItem = {
+        title: newTitle.trim() || `Code ${subCodes.length + 2}`,
+        language: newLanguage.toLowerCase().trim() || code.language,
+        code: newCodeText,
+      };
+      const res = await fetch(`/api/groups/${currentSlug}/codes/${code._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newSubCode: newItem }),
+      });
+      const data = await res.json();
+      if (data.success && data.code?.subCodes) {
+        setSubCodes(data.code.subCodes);
+        setActiveTab(data.code.subCodes.length);
+        setShowAddModal(false);
+        setNewTitle("");
+        setNewCodeText("");
+      } else if (data.success) {
+        const updatedList = [...subCodes, newItem];
+        setSubCodes(updatedList);
+        setActiveTab(updatedList.length);
+        setShowAddModal(false);
+        setNewTitle("");
+        setNewCodeText("");
+      } else {
+        alert(data.error || "Failed to add code");
+      }
+    } catch {
+      alert("Error adding code snippet");
+    } finally {
+      setSavingSubCode(false);
+    }
+  };
+
+  const handleDeleteSubCode = async (indexToDelete: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Delete this sub-code snippet?")) return;
+    const updated = subCodes.filter((_, idx) => idx !== indexToDelete);
+    try {
+      const res = await fetch(`/api/groups/${currentSlug}/codes/${code._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subCodes: updated }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSubCodes(updated);
+        if (activeTab === indexToDelete + 1) {
+          setActiveTab(0);
+        } else if (activeTab > indexToDelete + 1) {
+          setActiveTab((prev) => prev - 1);
+        }
+      }
+    } catch {
+      alert("Error removing code snippet");
     }
   };
 
@@ -312,7 +408,6 @@ export default function LabCodeCard({
     if (!confirm(`Delete this ${isPdf ? "PDF" : "snippet"}? This cannot be undone.`)) return;
     setDeleting(true);
     try {
-      const currentSlug = groupSlug || window.location.pathname.split("/g/")[1]?.split("/")[0];
       const res = await fetch(
         `/api/groups/${currentSlug}/codes/${code._id}`,
         {
@@ -327,8 +422,6 @@ export default function LabCodeCard({
       setDeleting(false);
     }
   };
-
-  const currentSlug = groupSlug || (typeof window !== "undefined" ? window.location.pathname.split("/g/")[1]?.split("/")[0] : "");
 
   return (
     <div
@@ -350,15 +443,22 @@ export default function LabCodeCard({
                 {code.fileSize ? ` · ${formatFileSize(code.fileSize)}` : ""}
               </span>
             ) : (
-              <span
-                className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${
-                  code.tagColor && COLOR_THEMES[code.tagColor]
-                    ? `${COLOR_THEMES[code.tagColor].badgeBg} ${COLOR_THEMES[code.tagColor].badgeText}`
-                    : "bg-brand-500/15 text-brand-400"
-                }`}
-              >
-                {getLanguageLabel(code.language)}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+                    code.tagColor && COLOR_THEMES[code.tagColor]
+                      ? `${COLOR_THEMES[code.tagColor].badgeBg} ${COLOR_THEMES[code.tagColor].badgeText}`
+                      : "bg-brand-500/15 text-brand-400"
+                  }`}
+                >
+                  {getLanguageLabel(code.language)}
+                </span>
+                {subCodes.length > 0 && (
+                  <span className="rounded-md bg-indigo-500/15 px-2 py-0.5 text-[11px] font-medium text-indigo-400 border border-indigo-500/30">
+                    {subCodes.length + 1} codes
+                  </span>
+                )}
+              </div>
             )}
           </div>
           <h3 className="truncate text-base font-semibold text-white">
@@ -475,14 +575,77 @@ export default function LabCodeCard({
               </div>
             </div>
           ) : (
-            /* Code Block */
             <>
-              {/* Toolbar */}
-              <div className="flex items-center justify-between bg-slate-950/80 px-3 py-2">
-                <span className="text-xs font-mono text-slate-500">
-                  {syntaxLang}
-                </span>
+              {/* Code Tabs Header (Switch between main code and additional codes) */}
+              <div className="flex flex-wrap items-center justify-between border-b border-slate-800 bg-slate-950 px-3 py-1.5 gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {/* Tab 0: Main code */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab(0)}
+                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                      activeTab === 0
+                        ? "bg-slate-800 text-white shadow-sm ring-1 ring-slate-700"
+                        : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+                    }`}
+                  >
+                    <Code2 className="h-3 w-3 text-brand-400" />
+                    <span>Main Code</span>
+                  </button>
+
+                  {/* Sub-code tabs */}
+                  {subCodes.map((sub, idx) => (
+                    <div
+                      key={sub._id || idx}
+                      className={`group flex items-center rounded-md text-xs font-medium transition ${
+                        activeTab === idx + 1
+                          ? "bg-slate-800 text-white shadow-sm ring-1 ring-slate-700"
+                          : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab(idx + 1)}
+                        className="px-2.5 py-1 flex items-center gap-1.5"
+                      >
+                        <span>{sub.title || `Code ${idx + 2}`}</span>
+                        {sub.language && (
+                          <span className="text-[10px] text-slate-500 uppercase">
+                            {sub.language}
+                          </span>
+                        )}
+                      </button>
+                      {isUnlocked && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteSubCode(idx, e)}
+                          className="pr-1.5 pl-0.5 text-slate-500 hover:text-red-400 transition"
+                          title="Delete snippet"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* + Add code button */}
+                  {isUnlocked && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(true)}
+                      className="flex items-center gap-1 rounded-md border border-dashed border-slate-700 px-2 py-1 text-xs font-medium text-indigo-400 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition"
+                      title="Add another code snippet to this assignment"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>+ Add code</span>
+                    </button>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-mono text-slate-500 mr-2">
+                    {syntaxLang}
+                  </span>
                   <button
                     onClick={handleCopy}
                     className="flex items-center gap-1 rounded-md bg-slate-800 px-2.5 py-1 text-[11px] font-medium text-slate-200 transition hover:bg-slate-700"
@@ -507,6 +670,73 @@ export default function LabCodeCard({
                 </div>
               </div>
 
+              {/* Add New Sub-code Form Drawer */}
+              {showAddModal && isUnlocked && (
+                <form
+                  onSubmit={handleAddSubCode}
+                  className="border-b border-indigo-500/30 bg-slate-900/95 p-4 transition"
+                >
+                  <div className="mb-2.5 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-indigo-300 flex items-center gap-1.5">
+                      <Plus className="h-3.5 w-3.5" /> Add Code Snippet / Alternative to "{code.title}"
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="text-slate-400 hover:text-white"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2 mb-2">
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Snippet label (e.g. Question 2, Approach 2, Using Array)…"
+                        value={newTitle}
+                        onChange={(e) => setNewTitle(e.target.value)}
+                        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Language (e.g. cpp, python, c, java)…"
+                        value={newLanguage}
+                        onChange={(e) => setNewLanguage(e.target.value)}
+                        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="mb-2.5">
+                    <textarea
+                      placeholder="Paste your code here…"
+                      value={newCodeText}
+                      onChange={(e) => setNewCodeText(e.target.value)}
+                      rows={6}
+                      className="w-full font-mono text-xs rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="rounded-lg border border-slate-700 px-3 py-1 text-xs font-medium text-slate-300 hover:bg-slate-800"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingSubCode || !newCodeText.trim()}
+                      className="rounded-lg bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+                    >
+                      {savingSubCode ? "Saving…" : "Save Code"}
+                    </button>
+                  </div>
+                </form>
+              )}
+
               {/* Syntax-highlighted code */}
               <div className="max-h-[480px] overflow-auto">
                 <SyntaxHighlighter
@@ -522,7 +752,7 @@ export default function LabCodeCard({
                   }}
                   lineNumberStyle={{ color: "#374151", userSelect: "none" }}
                 >
-                  {code.code || ""}
+                  {activeItem.code || ""}
                 </SyntaxHighlighter>
               </div>
             </>

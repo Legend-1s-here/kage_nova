@@ -77,6 +77,14 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       type: c.type || (c.language === "pdf" ? "pdf" : "code"),
       tagColor: c.tagColor || (c.language === "pdf" || c.type === "pdf" ? "rose" : "indigo"),
       code: c.code || "",
+      subCodes: Array.isArray(c.subCodes)
+        ? c.subCodes.map((sc: any) => ({
+            _id: sc._id ? sc._id.toString() : undefined,
+            title: sc.title || "",
+            language: sc.language || "",
+            code: sc.code || "",
+          }))
+        : [],
       fileData: c.fileData || "",
       fileName: c.fileName || "",
       fileSize: c.fileSize || 0,

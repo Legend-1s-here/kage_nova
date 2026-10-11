@@ -47,6 +47,50 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Check if updating subCodes specifically
+    if (Array.isArray(body.subCodes)) {
+      const cleanSubCodes = body.subCodes
+        .filter((sc: any) => sc && typeof sc.code === "string" && sc.code.trim().length > 0)
+        .map((sc: any) => ({
+          title: (sc.title || "").trim().slice(0, 100) || "Code Snippet",
+          language: (sc.language || "").trim().toLowerCase().slice(0, 30),
+          code: sc.code,
+        }));
+
+      const updated = await LabCode.findOneAndUpdate(
+        { _id: id, groupId: group._id },
+        { $set: { subCodes: cleanSubCodes } },
+        { new: true }
+      );
+
+      if (!updated) {
+        return NextResponse.json({ success: false, error: "Snippet not found in this group" }, { status: 404 });
+      }
+
+      return NextResponse.json({ success: true, code: updated });
+    }
+
+    // Check if appending a single subCode
+    if (body.newSubCode && typeof body.newSubCode.code === "string" && body.newSubCode.code.trim()) {
+      const subItem = {
+        title: (body.newSubCode.title || "").trim().slice(0, 100) || "Code Snippet",
+        language: (body.newSubCode.language || "").trim().toLowerCase().slice(0, 30),
+        code: body.newSubCode.code,
+      };
+
+      const updated = await LabCode.findOneAndUpdate(
+        { _id: id, groupId: group._id },
+        { $push: { subCodes: subItem } },
+        { new: true }
+      );
+
+      if (!updated) {
+        return NextResponse.json({ success: false, error: "Snippet not found in this group" }, { status: 404 });
+      }
+
+      return NextResponse.json({ success: true, code: updated });
+    }
+
     const validation = validateLabCodeUpload(
       body.title,
       body.language,
@@ -59,15 +103,17 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ success: false, error: validation.error }, { status: 400 });
     }
 
+    const updateDoc: Record<string, any> = {
+      title: validation.data.title,
+      language: validation.data.language,
+      code: validation.data.code,
+      uploaderName: validation.data.uploaderName,
+      description: validation.data.description,
+    };
+
     const updated = await LabCode.findOneAndUpdate(
       { _id: id, groupId: group._id },
-      {
-        title: validation.data.title,
-        language: validation.data.language,
-        code: validation.data.code,
-        uploaderName: validation.data.uploaderName,
-        description: validation.data.description,
-      },
+      updateDoc,
       { new: true }
     );
 

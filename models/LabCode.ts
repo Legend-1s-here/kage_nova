@@ -1,5 +1,12 @@
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
 
+export interface ISubCodeItem {
+  _id?: string;
+  title: string;
+  language?: string;
+  code: string;
+}
+
 export interface ILabCode extends Document {
   groupId: Types.ObjectId;
   title: string;
@@ -7,6 +14,7 @@ export interface ILabCode extends Document {
   type: "code" | "pdf";
   tagColor?: string;
   code?: string;
+  subCodes?: ISubCodeItem[];
   fileData?: string;
   fileName?: string;
   fileSize?: number;
@@ -49,6 +57,13 @@ const LabCodeSchema = new Schema<ILabCode>(
       type: String,
       default: "",
     },
+    subCodes: [
+      {
+        title: { type: String, trim: true, default: "" },
+        language: { type: String, trim: true, lowercase: true, default: "" },
+        code: { type: String, default: "" },
+      },
+    ],
     fileData: {
       type: String,
       default: "",
